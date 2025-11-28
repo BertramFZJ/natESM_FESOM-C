@@ -1,0 +1,58 @@
+CC = mpiicc
+LD = $(CC)
+
+INCLUDES = -I. -I../GKlib -I./include
+CFLAGS = -O3 -march=native -funroll-loops -fopenmp $(INCLUDES)
+
+LIBDIR = lib
+LIB = $(LIBDIR)/libmetis.a
+
+OBJS = auxapi.o \
+       balance.o \
+       bucketsort.o \
+       checkgraph.o \
+       coarsen.o \
+       compress.o \
+       contig.o \
+       debug.o \
+       fm.o \
+       fortran.o \
+       frename.o \
+       gklib.o \
+       graph.o \
+       initpart.o \
+       kmetis.o \
+       kwayfm.o \
+       kwayrefine.o \
+       mcutil.o \
+       mesh.o \
+       meshpart.o \
+       minconn.o \
+       mincover.o \
+       mmd.o \
+       ometis.o \
+       options.o \
+       parmetis.o \
+       pmetis.o \
+       refine.o \
+       separator.o \
+       sfm.o \
+       srefine.o \
+       stat.o \
+       timing.o \
+       util.o \
+       wspace.o 
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(LIBDIR):
+	mkdir -p $(LIBDIR)
+
+all: $(LIBDIR) $(OBJS)
+	ar rcs $(LIB) $(OBJS)
+	rm -f $(OBJS)
+	
+clean:
+	rm -f $(OBJS) $(LIB)
+
