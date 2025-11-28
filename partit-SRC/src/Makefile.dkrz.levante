@@ -1,0 +1,61 @@
+######################################################
+# Makefile                
+######################################################
+
+######################################################
+# Include architecture-specific definitions
+
+CC = mpiicc 
+FC = mpiifort
+LD = $(FC)
+
+METIS_DIR = ../../libs-SRC/metis-5.1.0
+LIB_METIS = -L$(METIS_DIR)/lib -lmetis
+METIS_INC = -I$(METIS_DIR)/include
+METIS_DEFS = -DMETIS_VERSION=5 -DPART_WEIGHTED -DMETISRANDOMSEED=35243
+
+GK_DIR = ../../libs-SRC/GKlib
+LIB_GK = -L$(GK_DIR)/lib -lGK
+GK_INC = -I$(GK_DIR)
+
+## PATH TO NETCDF
+NETCDFINC = -I/sw/spack-levante/netcdf-fortran-4.5.3-r5r3ev/include
+NETCDFLIB = -L/sw/spack-levante/netcdf-fortran-4.5.3-r5r3ev/lib -lnetcdff -Wl,-rpath,/sw/spack-levante/netcdf-fortran-4.5.3-r5r3ev/lib
+
+OPT = -O3  -march=native -funroll-loops -cpp
+COPT = -O3  -march=native -funroll-loops
+CPP_DEFS = -DFVOM_INIT
+
+###### Objects for Mesh Partitioning ################################################
+# modules
+MOD_INI =  oce_modules.o fort_part.o  gen_modules_config.o gen_modules_partitioning.o gen_modules_rotate_grid.o  
+OBJ_INI =  fvom_init.o oce_local.o gen_comm.o
+
+# Name of executable
+EXE_INI = fvom_ini.x
+
+# TARGETS
+
+default: run_ini
+
+run_ini: cleanomod $(MOD_INI) $(OBJ_INI)
+	@echo "======= Building FESOM paritioning program =========="
+	$(LD)  $(OPT) -o $(EXE_INI) $(MOD_INI) $(OBJ_INI) $(LIB_METIS) $(LIB_GK)
+	cp -pf $(EXE_INI) ../bin/.
+
+.SUFFIXES: .c .F90 .o 
+
+.c.o :
+	$(CC) $(COPT) $(METIS_DEFS) $(CPP_DEFS) $(METIS_INC) $(GK_INC) -c $*.c
+
+.F90.o :
+	@echo $@
+	$(FC) $(OPT) $(CPP_DEFS) -c $*.F90
+
+clean :
+	rm -f *.o *.mod *~ *.f90 $(EXE_INI)
+
+cleanomod:
+	rm -f *.o *.mod
+	CPP_DEFS=; export CPP_DEFS
+
