@@ -1,0 +1,76 @@
+FC = mpiifort
+FLAGS = -O3 -march=native -funroll-loops
+
+LIBDIR	= lib
+LIB	= $(LIBDIR)/libturbulence.a
+INCS = -I.
+
+.SUFFIXES:
+.SUFFIXES: .F90
+
+%.o: %.F90
+	$(FC) $(FLAGS) $(INCS) -c -nodefaultlibs $< -o $@
+	
+MOVE_MODULES_COMMAND = mv *.mod $(LIBDIR)/
+
+MOD   = \
+${LIB}(util.o)			\
+${LIB}(time.o)			\
+${LIB}(tridiagonal.o)		\
+${LIB}(eqstate.o)     \
+${LIB}(turbulence.o)   \
+${LIB}(kpp.o)
+
+OBJ   = \
+${LIB}(ode_solvers.o)		\
+${LIB}(gridinterpol.o)		\
+${LIB}(convert_fluxes.o)	\
+${LIB}(diff_center.o)           \
+${LIB}(diff_face.o)             \
+${LIB}(lagrange.o)              \
+${LIB}(adv_center.o)         \
+${LIB}(gotm_lib_version.o)	\
+${LIB}(production.o)            \
+${LIB}(alpha_mnb.o)             \
+${LIB}(r_ratio.o)               \
+${LIB}(tkeeq.o)			\
+${LIB}(q2over2eq.o)		\
+${LIB}(tkealgebraic.o)		\
+${LIB}(kbeq.o)	          	\
+${LIB}(kbalgebraic.o)		\
+${LIB}(dissipationeq.o)		\
+${LIB}(genericeq.o)		\
+${LIB}(lengthscaleeq.o)		\
+${LIB}(algebraiclength.o)	\
+${LIB}(epsbalgebraic.o)  	\
+${LIB}(variances.o)       	\
+${LIB}(ispralength.o)		\
+${LIB}(potentialml.o)		\
+${LIB}(cmue_a.o)		\
+${LIB}(cmue_b.o)		\
+${LIB}(cmue_c.o)		\
+${LIB}(cmue_d.o)		\
+${LIB}(cmue_ma.o)		\
+${LIB}(cmue_rf.o)		\
+${LIB}(cmue_sg.o)		\
+${LIB}(compute_cpsi3.o)		\
+${LIB}(compute_rist.o)		\
+${LIB}(fk_craig.o)		\
+${LIB}(internal_wave.o)
+
+$(LIBDIR):
+	mkdir -p $(LIBDIR)
+
+$(OBJ): $(MOD)
+
+all: $(LIBDIR) $(MOD) ${OBJ}
+	$(MOVE_MODULES_COMMAND)
+
+clean:
+	$(RM) -f ${LIB} ${LIBDIR}/*.mod
+
+realclean: clean
+	$(RM) -f *.o *~
+
+distclean: realclean
+
