@@ -125,8 +125,8 @@ SUBROUTINE pressure
      call MPI_AllREDUCE(maxval(rho_c),mx_rho, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
           MPI_COMM_FESOM_C, MPIerr)
 
-     if (mype==0) print *,'MIN_RHO',mn_rho
-     if (mype==0) print *,'MAX_RHO',mx_rho
+     ! if (mype==0) print *,'MIN_RHO',mn_rho
+     ! if (mype==0) print *,'MAX_RHO',mx_rho
 #else
      print *,'MIN_RHO',minval(rho_c)
      print *,'MAX_RHO',maxval(rho_c)

@@ -43,7 +43,11 @@ PROGRAM MAIN
 
   logical :: enable_output_main_switch
 
-  enable_output_main_switch = .TRUE. 
+  ! ===================================================================================================================================
+  real(kind=WP) :: rse_tStepStart, rse_tStepFinish, rse_tStep, rse_tStepMin, rse_tStepMax
+  ! ===================================================================================================================================
+
+  enable_output_main_switch = .TRUE.
 
 #ifdef USE_MPI
   call MPI_INIT(ierr)
@@ -465,12 +469,15 @@ if ((riv).or.(riv_ob)) call initial_riv
 
   do n_dt = 1, nsteps
 
+#ifdef USE_MPI
+     rse_tStepStart = MPI_Wtime()
+#endif
+
 !aa67 if (mype==0) then
 !aa67 print *,'============'
 !aa67 print *,'STEP:',n_dt
 !aa67 endif
 
-!!$     if (mype==0) write(*,*) "time step: ", n_dt
      n_dt2=n_dt2+1
 
 
@@ -556,6 +563,7 @@ end if
 
 #ifdef USE_MPI
 
+#if 0
 !!$print *,'OBACHT: ',mype,time,maxval(eta_n)
      call MPI_REDUCE(maxval(eta_n),mx_eta, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
           0, MPI_COMM_FESOM_C, MPIerr)
@@ -567,6 +575,7 @@ end if
 
 #ifdef DEBUG_TIMING
      if (mype==0) write(*,'(3e13.5)') time,mx_eta,mn_eta
+#endif
 #endif
 
 #else
@@ -615,9 +624,18 @@ end if
      ! ouput only for control
      !=======================
 
+#ifdef USE_MPI
+     rse_tStepFinish = MPI_Wtime()
+     rse_tStep = rse_tStepFinish - rse_tStepStart
+     call MPI_Reduce(rse_tStep, rse_tStepMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_COMM_FESOM_C, MPIerr)
+     call MPI_Reduce(rse_tStep, rse_tStepMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_FESOM_C, MPIerr)
+     if(mype==0) write(*,'(1x,A,1x,I5,1x,2F12.5)') "*CONTROL POINT* time step: ", n_dt, rse_tStepMin, rse_tStepMax
+#endif
 
      if ( enable_output_main_switch .AND. mod(n_dt,IREP)==0 ) then
      
+        ! WRITE(*,*) "RUN OUTPUT CODE BLOCK"
+        ! STOP
 
 #ifdef USE_MPI
         call MPI_AllREDUCE(maxval(eta_n),mx_eta, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
@@ -680,7 +698,6 @@ end if
         end if
 #endif
 
-#if 0
         if ( mod(n_dt,IREP_NC)==0 ) then
      !aa67      print *,'OUTPUT',mype
 #ifdef USE_MPI
@@ -693,9 +710,9 @@ end if
 #endif
            if (mype==0) call nc_out(n_dt)
         end if
-#endif
 
         call energy(eout)
+        print *,'>>>>  ENERGY ENERGY: ',eout
 
         if (mype==0) then
            print *,'Energy ENERGY ENERGY : ',eout
@@ -836,9 +853,8 @@ end if
 
 #ifdef USE_MPI 
   t_end=MPI_Wtime()
-  ! if (mype==0) print *,'Time needed for main loop (parallel) p0: ',t_end-t0
-  if (.TRUE.) print *,'Time needed for main loop (parallel): ',t_end-t0
-  ! if (mype==1) print *,'Time needed for main loop (parallel) p1: ',t_end-t0
+  if (mype==0) print *,'Time needed for main loop (parallel) p0: ',t_end-t0
+  if (mype==1) print *,'Time needed for main loop (parallel) p1: ',t_end-t0
 #else
   call cpu_time(end_time)
   print *,'Time needed for main loop (serial):',end_time-start_time
@@ -1719,7 +1735,7 @@ SUBROUTINE timestep_AB_2D(step)
 !  if (comp_sediment) call sediment  !SH: this call moved to the main program (aaa)
 ! AA
 
-!!$#ifdef USE_MPI 
+!!$#ifdef USE_MPI
 !!$ if(mype==0) then
 !!$  open(91,file='timing_fesom_c.out')
 !!$  write(91,*) t_1-t_0,t_2-t_1,t_3-t_2,t_4-t_3,t_5-t_4,t_6-t_5
@@ -1910,11 +1926,11 @@ SUBROUTINE solve_tracers
  t_4=MPI_Wtime()
 #endif
 
-#ifdef USE_MPI 
- if(mype==0) then
-  write(92,*) t_1-t_0,t_2-t_1,t_3-t_2,t_4-t_3
- endif
-#endif
+! #ifdef USE_MPI
+!  if(mype==0) then
+!   write(92,*) t_1-t_0,t_2-t_1,t_3-t_2,t_4-t_3
+!  endif
+! #endif
 
 end subroutine solve_tracers
 !==========================================================================

@@ -38,7 +38,7 @@ SUBROUTINE test_elem
         if (r>0.0_WP) then
            ! Vector b is to right of c
            ! Exchange second and third nodes:
-           ! write(*,*) 'AAA', 'Vertices exchanged for triangle ', n
+           write(*,*) 'AAA', 'Vertices exchanged for triangle ', n
            nx=elnodes(2)
            elnodes(2)=elnodes(3)
            elnodes(3)=nx

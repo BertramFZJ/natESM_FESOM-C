@@ -814,8 +814,8 @@ subroutine d3_end_LE
      call MPI_AllREDUCE(maxval(w_cv(1,:)),mxv, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
           MPI_COMM_FESOM_C, MPIerr)
 
-     if (mype==0) print *,'MIN_VAL w_cv',mnv
-     if (mype==0) print *,'MAX_VAL w_cv',mxv
+     ! if (mype==0) print *,'MIN_VAL w_cv',mnv
+     ! if (mype==0) print *,'MAX_VAL w_cv',mxv
 
      call MPI_AllREDUCE(minval(Av(1,:)),mnv, 1, MPI_DOUBLE_PRECISION, MPI_MIN, &
           MPI_COMM_FESOM_C, MPIerr)
@@ -823,8 +823,8 @@ subroutine d3_end_LE
      call MPI_AllREDUCE(maxval(Av(1,:)),mxv, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
           MPI_COMM_FESOM_C, MPIerr)
 
-     if (mype==0) print *,'MIN_VAL Av',mnv
-     if (mype==0) print *,'MAX_VAL Av',mxv
+     ! if (mype==0) print *,'MIN_VAL Av',mnv
+     ! if (mype==0) print *,'MAX_VAL Av',mxv
 #else
      print *,'MIN_VAL w_cv',minval(w_cv(1,:))
      print *,'MAX_VAL w_cv',maxval(w_cv(1,:))

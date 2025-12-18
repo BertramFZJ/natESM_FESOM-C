@@ -549,8 +549,6 @@ SUBROUTINE nc_out(iteration)
 
     iter = iter + 1
 
-    WRITE(*,*) 'CALL NC_OUT'
-
 END SUBROUTINE nc_out
 #endif
 
