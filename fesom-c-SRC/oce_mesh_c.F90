@@ -445,9 +445,9 @@ SUBROUTINE read_mesh_par
 
   end if
 
-  do n=1,mydim_nod2D
-     if (index_nod2D(n)==1) depth(n) = -15.0_WP
-  end do
+!  do n=1,mydim_nod2D
+!     if (index_nod2D(n)==1) depth(n) = -15.0_WP
+!  end do
 
 !aa67 ----------------------------------------------------------------------------------
 
