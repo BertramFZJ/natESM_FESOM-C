@@ -601,13 +601,12 @@ subroutine energy(eout)
 
   integer          :: n, el, elnodes(4)
   real(kind=WP)  :: eout, eout_sum, fD(4), my_area, ttl_area
-  !real(kind=WP), allocatable :: rbuffer(:), ekin(:)
-  real(kind=WP) :: rbuffer(elem2D), ekin(myDim_elem2D)
+  real(kind=WP), allocatable :: rbuffer(:), ekin(:)
   integer :: ierror
 
-  !allocate(rbuffer(elem2D), ekin(myDim_elem2D))
+  allocate(rbuffer(elem2D), ekin(myDim_elem2D))
 
- !aa67 print *,'ENERGY: ',minval(eta_n),maxval(eta_n)
+  !IK print *,'ENERGY: ',minval(eta_n),maxval(eta_n)
 
   eout=0.0_WP
   my_area=0.0_WP
@@ -619,10 +618,8 @@ subroutine energy(eout)
      my_area=my_area+area(n)
   end do
 
-#ifdef DEBUG_ARRAYS
-  print *,'ENERGY_U: ',minval(U_n_2D(1,:)),maxval(U_n_2D(1,:))
-  print *,'ENERGY_V: ',minval(U_n_2D(2,:)),maxval(U_n_2D(2,:))
-#endif
+!IK print *,'ENERGY_U: ',minval(U_n_2D(1,:)),maxval(U_n_2D(1,:))
+!IK print *,'ENERGY_V: ',minval(U_n_2D(2,:)),maxval(U_n_2D(2,:))
 
   ! kinetic energy
   do el=1,myDim_elem2D
@@ -632,9 +629,9 @@ subroutine energy(eout)
 !     if (U_n_2D(1,el)<1.e-20)  U_n_2D(1,el)=0.0_WP !SH Workaround
 !     if (U_n_2D(2,el)<1.0e-20) U_n_2D(2,el)=0.0_WP !SH Workaround
         fD=max(Dmin,depth(elnodes) + eta_n(elnodes))
-      !  ekin(el)=0.5_WP*sum(w_cv(1:4,el)*fD)*elem_area(el)*&
-      !       (U_n_2D(1,el)**2+U_n_2D(2,el)**2)
-     
+        ekin(el)=0.5_WP*sum(w_cv(1:4,el)*fD)*elem_area(el)*&
+             (U_n_2D(1,el)**2+U_n_2D(2,el)**2)
+
         !eout=eout+0.5_WP*sum(w_cv(1:4,el)*fD)*elem_area(el)*&
         !          (U_n_2D(1,el)**2+U_n_2D(2,el)**2)
         !my_area=my_area+elem_area(el)
@@ -647,27 +644,27 @@ subroutine energy(eout)
   call MPI_AllREDUCE(eout, eout_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_FESOM_C, MPIerr)
 
- !!!!!!!!!!!!! do el=1,elem2D
- !!!!!!!!!!!!!!!    eout_sum=eout_sum+rbuffer(el)
- !!!!!!!!!!! end do
- !!!!!!!!!!! call MPI_BCast(eout_sum, 1, MPI_DOUBLE_PRECISION, 0, MPI_COMM_FESOM_C, ierror)
-     
+  if (mype==0) then
+  do el=1,elem2D
+     eout_sum=eout_sum+rbuffer(el)
+  end do
+  endif
+  call MPI_BCast(eout_sum, 1, MPI_DOUBLE_PRECISION, 0, MPI_COMM_FESOM_C, ierror)
+
   call MPI_AllREDUCE(my_area, ttl_area, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_FESOM_C, MPIerr)
 #else
   eout_sum=eout+SUM(ekin)
   ttl_area=my_area
 #endif
-  
-#ifdef DEBUG_ARRAYS
-  print *,'mype, ttl_area= ',mype, my_area, ttl_area
-#endif
+
+!IK print *,'mype, ttl_area= ',mype, my_area, ttl_area
 
 !VF, per unit area to whole area
 
-  !!!!aa67 eout=eout_sum !/ttl_area    ! Energy for area
+   eout=eout_sum/ttl_area    ! Energy for area
 
- !deallocate(rbuffer, ekin)
+deallocate(rbuffer, ekin)
 
 end subroutine energy
 
