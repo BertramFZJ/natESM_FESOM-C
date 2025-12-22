@@ -128,8 +128,8 @@ SUBROUTINE pressure
      ! if (mype==0) print *,'MIN_RHO',mn_rho
      ! if (mype==0) print *,'MAX_RHO',mx_rho
 #else
-     print *,'MIN_RHO',minval(rho_c)
-     print *,'MAX_RHO',maxval(rho_c)
+     ! print *,'MIN_RHO',minval(rho_c)
+     ! print *,'MAX_RHO',maxval(rho_c)
 #endif
 
 !$OMP END PARALLEL 

@@ -22,6 +22,7 @@ PROGRAM MAIN
   use g_comm_auto
 
   use talcc_c_bindings, only: printAffinityBindingC
+  use omp_lib
 
   IMPLICIT NONE
 
@@ -60,6 +61,8 @@ PROGRAM MAIN
   print *,'Run serial version'
   mype=0
   npes=1
+
+  call printAffinityBindingC(mype, -1)
 #endif
 
 
@@ -475,6 +478,8 @@ if ((riv).or.(riv_ob)) call initial_riv
 
 #ifdef USE_MPI
      rse_tStepStart = MPI_Wtime()
+#else
+     rse_tStepStart = omp_get_wtime()
 #endif
 
 !aa67 if (mype==0) then
@@ -585,7 +590,7 @@ end if
 #else
 
      write(51,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,maxval(eta_n),minval(eta_n)
-     write(*,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,maxval(eta_n),minval(eta_n)
+     ! write(*,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,maxval(eta_n),minval(eta_n)
 
 #endif
 
@@ -634,6 +639,10 @@ end if
      call MPI_Reduce(rse_tStep, rse_tStepMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_COMM_FESOM_C, MPIerr)
      call MPI_Reduce(rse_tStep, rse_tStepMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_FESOM_C, MPIerr)
      if(mype==0) write(*,'(1x,A,1x,I5,1x,2F12.5)') "*CONTROL POINT* time step: ", n_dt, rse_tStepMin, rse_tStepMax
+#else
+     rse_tStepFinish = omp_get_wtime()
+     rse_tStep = rse_tStepFinish - rse_tStepStart
+     write(*,'(1x,A,1x,I5,1x,F12.5)') "*CONTROL POINT* time step: ", n_dt, rse_tStep
 #endif
 
      if ( enable_output_main_switch .AND. mod(n_dt,IREP)==0 ) then

@@ -320,10 +320,10 @@ subroutine d3_end
      if (mype==0) print *,'MIN_VAL Av',mnv
      if (mype==0) print *,'MAX_VAL Av',mxv
 #else
-     print *,'MIN_VAL w_cv',minval(w_cv(1,:))
-     print *,'MAX_VAL w_cv',maxval(w_cv(1,:))
-     print *,'MIN_VAL Av',minval(Av(1,:))
-     print *,'MAX_VAL Av',maxval(Av(1,:))
+     ! print *,'MIN_VAL w_cv',minval(w_cv(1,:))
+     ! print *,'MAX_VAL w_cv',maxval(w_cv(1,:))
+     ! print *,'MIN_VAL Av',minval(Av(1,:))
+     ! print *,'MAX_VAL Av',maxval(Av(1,:))
 #endif
 #endif
 
@@ -580,10 +580,10 @@ subroutine d3_end_LE_alexey
 !!$     if (mype==0) print *,'MIN_VAL Av',mnv
 !!$     if (mype==0) print *,'MAX_VAL Av',mxv
 #else
-     print *,'MIN_VAL w_cv',minval(w_cv(1,:))
-     print *,'MAX_VAL w_cv',maxval(w_cv(1,:))
-     print *,'MIN_VAL Av',minval(Av(1,:))
-     print *,'MAX_VAL Av',maxval(Av(1,:))
+     ! print *,'MIN_VAL w_cv',minval(w_cv(1,:))
+     ! print *,'MAX_VAL w_cv',maxval(w_cv(1,:))
+     ! print *,'MIN_VAL Av',minval(Av(1,:))
+     ! print *,'MAX_VAL Av',maxval(Av(1,:))
 #endif
 
 
@@ -826,10 +826,10 @@ subroutine d3_end_LE
      ! if (mype==0) print *,'MIN_VAL Av',mnv
      ! if (mype==0) print *,'MAX_VAL Av',mxv
 #else
-     print *,'MIN_VAL w_cv',minval(w_cv(1,:))
-     print *,'MAX_VAL w_cv',maxval(w_cv(1,:))
-     print *,'MIN_VAL Av',minval(Av(1,:))
-     print *,'MAX_VAL Av',maxval(Av(1,:))
+     ! print *,'MIN_VAL w_cv',minval(w_cv(1,:))
+     ! print *,'MAX_VAL w_cv',maxval(w_cv(1,:))
+     ! print *,'MIN_VAL Av',minval(Av(1,:))
+     ! print *,'MAX_VAL Av',maxval(Av(1,:))
 #endif
 
 
