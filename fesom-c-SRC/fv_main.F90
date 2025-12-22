@@ -21,6 +21,8 @@ PROGRAM MAIN
   USE g_parsup
   use g_comm_auto
 
+  use talcc_c_bindings, only: printAffinityBindingC
+
   IMPLICIT NONE
 
   integer      :: i, k, n, period_m2, out_fft, istep, ist,elnodes(4), nz, rk, rk2, turn_on_riv, n_dt2, flag_riv,vsp(11)
@@ -52,6 +54,8 @@ PROGRAM MAIN
 #ifdef USE_MPI
   call MPI_INIT(ierr)
   call par_init
+
+  call printAffinityBindingC(mype, -1)
 #else
   print *,'Run serial version'
   mype=0

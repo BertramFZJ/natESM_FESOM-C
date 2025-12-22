@@ -20,8 +20,13 @@ GOTMINCS     = -I$(GOTMDIR)
 NETCDFINC = -I/usr/local/netcdf-intel/include
 NETCDFLIB = -L/usr/local/netcdf-intel/lib -lnetcdff -lnetcdf
 
-LIBS = $(GOTMLIB)  $(NETCDFLIB)
-INCS = $(GOTMINCS) $(NETCDFINC)
+## PATH TO THREAD AFFINITY LIBRARY
+TATHDIR      = $(PWD)/../libs-SRC/threadAffinityLib/lib
+TATHLIB      = -L$(TATHDIR) -lTATH
+TATHINCS     = -I$(TATHDIR)
+
+LIBS = $(TATHLIB) $(GOTMLIB)  $(NETCDFLIB)
+INCS = $(TATHINCS) $(GOTMINCS) $(NETCDFINC)
 
 # NAME OF THE EXECUTABLES
 EXE = fesom_coast.exe
@@ -62,7 +67,7 @@ OBJECTS= fv_var.o                  \
 #--------------------------------------------------
 
 $(EXE): $(OBJECTS)
-	 $(LINK) $(FCFLAGS) -o $(EXE) $(OBJECTS) $(LIBS)
+	 $(LINK) $(FCFLAGS) -qopenmp -o $(EXE) $(OBJECTS) $(LIBS)
 
 all: $(EXE)
 

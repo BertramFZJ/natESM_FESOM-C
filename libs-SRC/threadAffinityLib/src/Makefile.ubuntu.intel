@@ -1,0 +1,30 @@
+FC = mpiifx
+FORTRAN_COMPILER_OPTIONS = -O3 -march=native -funroll-loops -qopenmp -cpp
+FORTRAN_LINKER_OPTIONS = $(FORTRAN_COMPILER_OPTIONS)
+SOURCES_FORTRAN = talcc_c_bindings.f90
+OBJECTS_FORTRAN = $(patsubst %.f90, %.o, $(SOURCES_FORTRAN))
+
+CC = mpiicx
+C_COMPILER_OPTIONS = -D_GNU_SOURCE -O3 -march=native -funroll-loops -qopenmp
+SOURCES_C = threadAffinityLibCoreC.c
+OBJECTS_C = $(patsubst %.c, %.o, $(SOURCES_C))
+
+LIB = ../lib/libTATH.a
+
+%.o : %.c
+	@echo "compiling $^ ..."
+	@$(CC) $(C_COMPILER_OPTIONS) -c $^ -o $@
+
+%.o : %.f90
+	@echo "compiling $^ ..."
+	@$(FC) $(FORTRAN_COMPILER_OPTIONS) -c $^ -o $@
+	
+all: $(OBJECTS_FORTRAN) $(OBJECTS_C)
+	@echo "building $(LIB) ..."
+	ar rcs $(LIB) $(OBJECTS_FORTRAN) $(OBJECTS_C)
+	mv *.mod ../lib
+	rm -f $(OBJECTS_FORTRAN) $(OBJECTS_C)
+
+clean :
+	@rm -f $(LIB) ../lib/*.mod $(OBJECTS_C) $(OBJECTS_FORTRAN) *.mod
+

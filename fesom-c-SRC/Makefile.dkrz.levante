@@ -3,7 +3,7 @@ CC = mpiicc
 LINK = $(FC)
 
 MPIFLAGS = -DUSE_MPI
-FCFLAGS = -O3  -march=native -funroll-loops  $(MPIFLAGS)
+FCFLAGS = -O3 -march=native -funroll-loops  $(MPIFLAGS)
 
 .SUFFIXES: .F90 .o
 
@@ -20,8 +20,13 @@ PNETCDFLIB = -L/sw/spack-levante/parallel-netcdf-1.12.2-vrp23r/lib -Wl,-rpath,/s
 NETCDFINC = -I/sw/spack-levante/netcdf-fortran-4.5.3-r5r3ev/include
 NETCDFLIB = -L/sw/spack-levante/netcdf-fortran-4.5.3-r5r3ev/lib -lnetcdff -Wl,-rpath,/sw/spack-levante/netcdf-fortran-4.5.3-r5r3ev/lib  
 
-LIBS = $(GOTMLIB)  $(NETCDFLIB)
-INCS = $(GOTMINCS) $(NETCDFINC)
+## PATH TO THREAD AFFINITY LIBRARY
+TATHDIR      = $(PWD)/../libs-SRC/threadAffinityLib/lib
+TATHLIB      = -L$(TATHDIR) -lTATH
+TATHINCS     = -I$(TATHDIR)
+
+LIBS = $(TATHLIB) $(GOTMLIB)  $(NETCDFLIB)
+INCS = $(TATHINCS) $(GOTMINCS) $(NETCDFINC)
 
 # NAME OF THE EXECUTABLES
 EXE = fesom_coast.exe
@@ -62,7 +67,7 @@ OBJECTS= fv_var.o                  \
 #--------------------------------------------------
 
 $(EXE): $(OBJECTS)
-	 $(LINK) $(FCFLAGS) -o $(EXE) $(OBJECTS) $(LIBS)
+	 $(LINK) $(FCFLAGS) -fopenmp -o $(EXE) $(OBJECTS) $(LIBS)
 
 all: $(EXE)
 
