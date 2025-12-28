@@ -1,0 +1,22 @@
+COMPILER = icpx
+COMPILER_OPTIONS = -O2
+LINKER_OPTIONS = -O2
+
+TARGET = processMesh2D
+
+SOURCES = hybmeshdual2D.cpp ioHM2D.cpp csrProcessDichotomy.cpp csrProcessCuthillMcKee.cpp main.cpp
+
+OBJECTS = $(patsubst %.cpp, %.o, $(SOURCES))
+
+%.o : %.c
+	@echo "compiling $^ ..."
+	@$(CXX) $(COMPILER_OPTIONS) -c $^ -o $@
+
+all : $(OBJECTS)
+	@echo "building $(TARGET) ..."
+	@$(CXX) $(LINKER_OPTIONS) $(OBJECTS) -o $(TARGET).exe
+	@cp $(TARGET).exe ../bin/
+
+clean :
+	@rm -f ../bin/$(TARGET).exe $(TARGET).exe $(OBJECTS)
+
