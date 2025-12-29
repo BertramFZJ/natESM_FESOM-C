@@ -5,6 +5,7 @@
 !  Androsov Alexey
 !++++++++++++++++++++++++++++++++++++++++++
 SUBROUTINE pressure
+    ! NATESM CALLTREE TRUE
 
   USE o_MESH
   USE o_ARRAYS
@@ -162,6 +163,7 @@ SUBROUTINE baroclinic_pressure_gradient_3D
 
 !$OMP DO 
   DO elem=1,myDim_elem2D
+    ! NATESM Проверить дублирование операций типа sum(gradient_sca(1:4,elem))
 
      elnodes=elem2D_nodes(:,elem)
      Ax = sum(gradient_sca(1:4,elem)*(depth(elnodes)+eta_n(elnodes)))

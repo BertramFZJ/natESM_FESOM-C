@@ -48,6 +48,7 @@ PROGRAM MAIN
 
   ! ===================================================================================================================================
   real(kind=WP) :: rse_tStepStart, rse_tStepFinish, rse_tStep, rse_tStepMin, rse_tStepMax
+  logical :: activeTimer
   ! ===================================================================================================================================
 
   enable_output_main_switch = .TRUE.
@@ -473,14 +474,17 @@ if ((riv).or.(riv_ob)) call initial_riv
   print *,'CLOCK:',c1,c1rate,c1max
 #endif
 
-
+  activeTimer = .FALSE.
   do n_dt = 1, nsteps
 
-#ifdef USE_MPI
-     rse_tStepStart = MPI_Wtime()
+    if(activeTimer .EQV. .FALSE.) then
+        activeTimer = .TRUE.
+#ifdef USE_MPI     
+        rse_tStepStart = MPI_Wtime()
 #else
-     rse_tStepStart = omp_get_wtime()
+        rse_tStepStart = omp_get_wtime()
 #endif
+    end if
 
 !aa67 if (mype==0) then
 !aa67 print *,'============'
@@ -515,7 +519,10 @@ if ((riv).or.(riv_ob)) call initial_riv
      !$ if (iverbosity >= 3) t2=omp_get_wtime()
 
 if ( mod(n_dt,IREP)==0) then
-     if (key_atm) call sbc_do
+     if (key_atm) then
+        ! NATESM CALLTREE FALSE
+        call sbc_do
+     end if
 end if
 
      !$ if (iverbosity >= 3) t3=omp_get_wtime()
@@ -581,7 +588,7 @@ end if
      
      if (mype==0) write(51,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,mx_eta,mn_eta
      !if (mype==0) write(*,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,mx_eta,mn_eta
-
+ 
 #ifdef DEBUG_TIMING
      if (mype==0) write(*,'(3e13.5)') time,mx_eta,mn_eta
 #endif
@@ -589,7 +596,7 @@ end if
 
 #else
 
-     write(51,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,maxval(eta_n),minval(eta_n)
+     ! write(51,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,maxval(eta_n),minval(eta_n)
      ! write(*,'(3e13.5)') (time- time_jd0*86400.0_WP)/3600.0_WP,maxval(eta_n),minval(eta_n)
 
 #endif
@@ -633,22 +640,27 @@ end if
      ! ouput only for control
      !=======================
 
+     if ( (mype == 0) .AND. (mod(n_dt,25) == 0) ) then
+        WRITE(*,*) "ITER ", n_dt
+     end if        
+
+     if ( enable_output_main_switch .AND. mod(n_dt,IREP)==0 ) then
+     
+        ! WRITE(*,*) "RUN OUTPUT CODE BLOCK"
+        ! STOP
 #ifdef USE_MPI
+     activeTimer = .FALSE.
      rse_tStepFinish = MPI_Wtime()
      rse_tStep = rse_tStepFinish - rse_tStepStart
      call MPI_Reduce(rse_tStep, rse_tStepMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, 0, MPI_COMM_FESOM_C, MPIerr)
      call MPI_Reduce(rse_tStep, rse_tStepMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, 0, MPI_COMM_FESOM_C, MPIerr)
      if(mype==0) write(*,'(1x,A,1x,I5,1x,2F12.5)') "*CONTROL POINT* time step: ", n_dt, rse_tStepMin, rse_tStepMax
 #else
+     activeTimer = .FALSE.
      rse_tStepFinish = omp_get_wtime()
      rse_tStep = rse_tStepFinish - rse_tStepStart
      write(*,'(1x,A,1x,I5,1x,F12.5)') "*CONTROL POINT* time step: ", n_dt, rse_tStep
 #endif
-
-     if ( enable_output_main_switch .AND. mod(n_dt,IREP)==0 ) then
-     
-        ! WRITE(*,*) "RUN OUTPUT CODE BLOCK"
-        ! STOP
 
 #ifdef USE_MPI
         call MPI_AllREDUCE(maxval(eta_n),mx_eta, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
@@ -2008,7 +2020,10 @@ SUBROUTINE oce_timestep
 !aa13.02.20  print *,mype,'oce_timestep started!'
 
 !!$print *,'U_n RANGE:',minval(U_n_2D(1,:)),maxval(U_n_2D(1,:))
-  if (T_potential) call potential           ! AA compute tidal geopotential here
+  if (T_potential) then
+    ! NATESM CALLTREE FALSE
+    call potential           ! AA compute tidal geopotential here
+  end if
 
   select case (type_task)
 
@@ -2095,31 +2110,17 @@ SUBROUTINE oce_timestep
 !aaa     endif
 
   case(3)
+    ! NATESM CALLTREE TRUE
      
-     if (Mask_Bar_pr) call bpr_mask
+    if (Mask_Bar_pr) then
+        ! NATESM CALLTREE FALSE
+        call bpr_mask
+    end if
 
-     !$ if (iverbosity >= 3) t1=omp_get_wtime()
-
-!!$#ifdef USE_MPI 
-!!$ t_0 = MPI_Wtime()
-!!$#endif
-
- call pressure
-     ! if ((time/3600.0_WP/24.0_WP)>4) call pressure
-
-     !$ if (iverbosity >= 3) t2=omp_get_wtime()
-
-!!$#ifdef USE_MPI 
-!!$ t_1 = MPI_Wtime()
-!!$#endif
+    call pressure
 
 !$OMP PARALLEL
-     call compute_el2nodes_3D(U_n,V_n,Unode,Vnode)
-
-!!$#ifdef USE_MPI 
-!!$ t_2 = MPI_Wtime()
-!!$#endif
-
+    call compute_el2nodes_3D(U_n,V_n,Unode,Vnode)
 !$OMP END PARALLEL
 
      !$ if (iverbosity >= 3) t3=omp_get_wtime()
