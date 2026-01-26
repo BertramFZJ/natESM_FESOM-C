@@ -1,0 +1,27 @@
+# FC = ifx
+FC = mpiifx
+
+COMPILER_OPTIONS = -O3 -cpp
+# -qopenmp -stand f08
+
+LINKER_OPTIONS = -O3 -qopenmp
+# -stand f08
+
+TARGET = timerLibEx
+
+SOURCES = timerLibFortran.F90 main.F90
+
+OBJECTS = $(patsubst %.F90, %.o, $(SOURCES))
+
+%.o : %.F90
+	@echo "compiling $^ ..."
+	@$(FC) $(COMPILER_OPTIONS) -c $^ -o $@
+
+all : $(OBJECTS)
+	@rm -f $(TARGET).exe
+	@echo "building $(TARGET) ..."
+	@$(FC) $(LINKER_OPTIONS) $(OBJECTS) -o $(TARGET).exe
+
+clean :
+	@rm -f $(TARGET).exe $(OBJECTS) *.mod
+
