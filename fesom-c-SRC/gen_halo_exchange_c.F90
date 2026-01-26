@@ -16,6 +16,9 @@
 
 module g_comm
 
+USE timerLibFortran
+USE profilingTimers
+
 implicit none
 
 contains
@@ -63,8 +66,10 @@ IMPLICIT NONE
 integer, intent(inout)  :: nod_array2D(:)
 
  if (npes > 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_nod2D_i_begin(nod_array2D)
-    call exchange_nod_end  
+    call exchange_nod_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
 endif
 END SUBROUTINE exchange_nod2D_i
 
@@ -122,8 +127,10 @@ IMPLICIT NONE
  real(kind=WP), intent(inout)  :: nod_array2D(:)
 
  if (npes > 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_nod2D_begin(nod_array2D)  
     call exchange_nod_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
  end if
  
 END SUBROUTINE exchange_nod2D
@@ -177,8 +184,10 @@ IMPLICIT NONE
  real(kind=WP), intent(inout)  :: nod2_array2D(:)
 
  if (npes > 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_nod2D_2fields_begin(nod1_array2D, nod2_array2D)  
     call exchange_nod_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
  end if
  
 END SUBROUTINE exchange_nod2D_2fields
@@ -241,8 +250,10 @@ IMPLICIT NONE
  real(kind=WP), intent(inout)  :: nod3_array2D(:)
 
  if (npes > 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_nod2D_3fields_begin(nod1_array2D, nod2_array2D, nod3_array2D)  
     call exchange_nod_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
  end if
  
 END SUBROUTINE exchange_nod2D_3fields
@@ -311,8 +322,10 @@ real(kind=WP), intent(inout) :: nod_array3D(:,:)
 ! stored in (vertical, horizontal) format
 
 if (npes > 1) then
+   CALL tlfStartSingleTimer(idDataExchangeTimer)
    call exchange_nod3D_begin(nod_array3D)
    call exchange_nod_end
+   CALL tlfStopSingleTimer(idDataExchangeTimer)
 endif
 END SUBROUTINE exchange_nod3D
 
@@ -377,8 +390,10 @@ real(kind=WP), intent(inout) :: nod2_array3D(:,:)
 ! stored in (vertical, horizontal) format
  
 if (npes > 1) then
+   CALL tlfStartSingleTimer(idDataExchangeTimer)
    call exchange_nod3D_2fields_begin(nod1_array3D,nod2_array3D)
    call exchange_nod_end
+   CALL tlfStopSingleTimer(idDataExchangeTimer)
 endif
 END SUBROUTINE exchange_nod3D_2fields
 
@@ -454,8 +469,10 @@ IMPLICIT NONE
 real(kind=WP), intent(inout) :: nod_array3D(:,:,:) 
  
 if (npes>1) then
+   CALL tlfStartSingleTimer(idDataExchangeTimer)
    call exchange_nod3D_n_begin(nod_array3D)
    call exchange_nod_end
+   CALL tlfStopSingleTimer(idDataExchangeTimer)
 endif
 
 END SUBROUTINE exchange_nod3D_n
@@ -657,8 +674,10 @@ IMPLICIT NONE
 
  real(kind=WP), intent(inout) :: elem_array3D(:,:) 
 
+ CALL tlfStartSingleTimer(idDataExchangeTimer)
  call exchange_elem3D_begin(elem_array3D)
  call exchange_elem_end
+ CALL tlfStopSingleTimer(idDataExchangeTimer)
 
 END SUBROUTINE exchange_elem3D
 !===========================================
@@ -811,8 +830,10 @@ IMPLICIT NONE
  real(kind=WP), intent(inout) :: elem_array3D(:,:,:) 
 
  if (npes> 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_elem3D_n_begin(elem_array3D)
     call exchange_elem_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
  endif
 END SUBROUTINE exchange_elem3D_n
 !=============================================================================
@@ -912,8 +933,10 @@ IMPLICIT NONE
  real(kind=WP), intent(inout) :: elem_array2D(:) 
 
  if (npes> 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_elem2D_begin(elem_array2D)
     call exchange_elem_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
  end if
   
 END SUBROUTINE exchange_elem2D
@@ -1003,8 +1026,10 @@ IMPLICIT NONE
  integer  :: n, sn, rn
 
  if (npes> 1) then
+    CALL tlfStartSingleTimer(idDataExchangeTimer)
     call exchange_elem2D_i_begin(elem_array2D)
     call exchange_elem_end
+    CALL tlfStopSingleTimer(idDataExchangeTimer)
 end if
 
 END SUBROUTINE exchange_elem2D_i
@@ -1071,6 +1096,8 @@ real(kind=WP) ::  arr3Dglobal(:,:)
 real(kind=WP), ALLOCATABLE, DIMENSION(:) ::  sendbuf, recvbuf
 integer       :: node_size
 
+CALL tlfStartSingleTimer(idDataBroadcastTimer)
+
 node_size=myDim_nod2D+eDim_nod2D
 nl1=ubound(arr3D,1)
 IF ( mype == 0 ) THEN
@@ -1117,6 +1144,9 @@ ELSE
     DEALLOCATE(recvbuf)
 ENDIF
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
+
+CALL tlfStopSingleTimer(idDataBroadcastTimer)
+
 end subroutine broadcast_nod3D
 !
 !============================================================================
@@ -1134,6 +1164,8 @@ integer                                  ::  i, n, nTS, sender, status(MPI_STATU
 INTEGER, ALLOCATABLE, DIMENSION(:)       ::  irecvbuf
 real(kind=WP), ALLOCATABLE, DIMENSION(:) ::  sendbuf
 integer       :: node_size
+
+CALL tlfStartSingleTimer(idDataBroadcastTimer)
 
 node_size=myDim_nod2D+eDim_nod2D
 
@@ -1166,6 +1198,9 @@ ELSE
                       2, MPI_COMM_FESOM_C, status, MPIerr )
 ENDIF
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
+
+CALL tlfStopSingleTimer(idDataBroadcastTimer)
+
 end subroutine broadcast_nod2D
 !
 !============================================================================
@@ -1184,6 +1219,8 @@ real(kind=WP) ::  arr3D(:,:)
 real(kind=WP) ::  arr3Dglobal(:,:)
 real(kind=WP), ALLOCATABLE, DIMENSION(:) ::  sendbuf, recvbuf
 integer       :: elem_size
+
+CALL tlfStartSingleTimer(idDataBroadcastTimer)
 
 elem_size=myDim_elem2D+eDim_elem2D+eXDim_elem2D
 
@@ -1232,6 +1269,9 @@ ELSE
     DEALLOCATE(recvbuf)
 ENDIF
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
+
+CALL tlfStopSingleTimer(idDataBroadcastTimer)
+
 end subroutine broadcast_elem3D
 !
 !============================================================================
@@ -1250,9 +1290,9 @@ real(kind=WP) ::  arr2Dglobal(:)
 real(kind=WP), ALLOCATABLE, DIMENSION(:) ::  sendbuf
 integer       :: elem_size
 
+CALL tlfStartSingleTimer(idDataBroadcastTimer)
+
 elem_size=myDim_elem2D+eDim_elem2D+eXDim_elem2D
-
-
 
 IF ( mype == 0 ) THEN
     if (npes>1) then
@@ -1283,6 +1323,9 @@ ELSE
                       2, MPI_COMM_FESOM_C, status, MPIerr )
 ENDIF
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
+
+CALL tlfStopSingleTimer(idDataBroadcastTimer)
+
 end subroutine broadcast_elem2D
 !
 !============================================================================
@@ -1307,6 +1350,8 @@ real(kind=WP)  ::  arr3D_global(:,:)
 real(kind=WP), allocatable :: recvbuf(:,:)
 integer        :: req(npes-1)
 integer        :: start, n3D
+
+ CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
@@ -1346,6 +1391,9 @@ ELSE
 ENDIF
 
 end if
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_nod3D
 !==============================================
 subroutine gather_nod2D(arr2D, arr2D_global)
@@ -1364,6 +1412,8 @@ real(kind=WP)  ::  arr2D_global(:)
 real(kind=WP)  :: recvbuf(nod2D)
 integer        :: req(npes-1)
 integer        :: start, n2D
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 
@@ -1401,6 +1451,9 @@ ELSE
 ENDIF
 
 endif
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_nod2D
 !==============================================
 !============================================================================
@@ -1425,6 +1478,8 @@ integer, allocatable :: recvbuf(:,:)
 integer        :: req(npes-1)
 integer        :: start, e3D, ende, err_alloc
 integer        :: max_loc_Dim, i, status(MPI_STATUS_SIZE)
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
@@ -1468,6 +1523,9 @@ ELSE
 ENDIF
 
 endif
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_elem3D_i
 !==============================================
 subroutine gather_elem3D(arr3D, arr3D_global)
@@ -1491,6 +1549,8 @@ real(kind=WP), allocatable :: recvbuf(:,:)
 integer        :: req(npes-1)
 integer        :: start, e3D, ende, err_alloc
 integer        :: max_loc_Dim, i, status(MPI_STATUS_SIZE)
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
@@ -1534,6 +1594,9 @@ ELSE
 ENDIF
 
 endif
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_elem3D
 !==============================================
 subroutine gather_elem2D(arr2D, arr2D_global)
@@ -1553,6 +1616,7 @@ real(kind=WP), allocatable :: recvbuf(:)
 integer        :: req(npes-1)
 integer        :: start, e2D
 
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
@@ -1593,6 +1657,8 @@ ELSE
 ENDIF
 end if
 
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_elem2D
 
 !============================================================================
@@ -1617,6 +1683,8 @@ real(kind=4), allocatable :: recvbuf(:,:)
 real(kind=4), allocatable :: sendbuf(:,:)
 integer        :: req(npes-1)
 integer        :: start, n3D, ierr
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 
@@ -1662,6 +1730,8 @@ ENDIF
 
 end if
 
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_real4_nod3D
 !==============================================
 subroutine gather_real4_nod2D(arr2D, arr2D_global)
@@ -1680,6 +1750,8 @@ real(kind=4)   ::  arr2D_global(:)
 real(kind=4)   :: recvbuf(nod2D), sendbuf(myDim_nod2D)
 integer        :: req(npes-1)
 integer        :: start, n2D
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
 ! Consider MPI-datatypes to recv directly into arr2D_global!
 
@@ -1716,6 +1788,9 @@ ELSE
 ENDIF
 
 end if
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_real4_nod2D
 !==============================================
 !============================================================================
@@ -1741,6 +1816,7 @@ real(kind=4), allocatable :: sendbuf(:,:)
 integer        :: req(npes-1)
 integer        :: start, e3D
 
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
@@ -1781,6 +1857,9 @@ ELSE
 ENDIF
 
 end if
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_real4_elem3D
 !==============================================
 subroutine gather_real4_elem2D(arr2D, arr2D_global)
@@ -1801,6 +1880,7 @@ real(kind=4)  :: sendbuf(myDim_elem2D)
 integer        :: req(npes-1)
 integer        :: start, e2D
 
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
  if (npes> 1) then
 
@@ -1841,6 +1921,9 @@ ELSE
 ENDIF
 
 end if
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_real4_elem2D
 !==============================================
 subroutine gather_elem2D_i(arr2D, arr2D_global)
@@ -1855,6 +1938,9 @@ subroutine gather_elem2D_i(arr2D, arr2D_global)
   integer, allocatable          :: recvbuf(:)
   integer                       :: req(npes-1)
   integer                       :: start, e2D
+
+  CALL tlfStartSingleTimer(idDataGatherTimer)
+
   CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
   ! Consider MPI-datatypes to recv directly into arr2D_global!
   IF ( mype == 0 ) THEN
@@ -1876,6 +1962,9 @@ subroutine gather_elem2D_i(arr2D, arr2D_global)
   ELSE
      call MPI_SEND(arr2D, myDim_elem2D, MPI_INTEGER, 0, 2, MPI_COMM_FESOM_C, MPIerr )
   ENDIF
+
+  CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_elem2D_i
 !============================================================================
 subroutine gather_nod2D_i(arr2D, arr2D_global)
@@ -1893,6 +1982,8 @@ integer  :: arr2D_global(:)
 integer  :: recvbuf(nod2D)
 integer  :: req(npes-1)
 integer  :: start, n2D
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
 if (npes> 1) then
 
@@ -1930,6 +2021,9 @@ ELSE
 ENDIF
 
 endif
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_nod2D_i
 !============================================================================
 !
@@ -1945,6 +2039,8 @@ real(kind=WP) ::  arr2Dglobal(:)
 integer                                  ::  i, n, buf_size, sender, status(MPI_STATUS_SIZE)
 INTEGER, ALLOCATABLE, DIMENSION(:)       ::  ibuf
 REAL(kind=WP), ALLOCATABLE, DIMENSION(:) ::  rbuf
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
 IF ( mype == 0 ) THEN
     arr2Dglobal(myList_edge2D(1:myDim_edge2D))=arr2D(1:myDim_edge2D)
@@ -1970,6 +2066,9 @@ ELSE
                    MPI_COMM_FESOM_C, MPIerr )
 ENDIF
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_edg2D
 !
 !============================================================================
@@ -1985,6 +2084,8 @@ integer  ::  arr2Dglobal(:)
 
 integer                                  ::  i, n, buf_size, sender, status(MPI_STATUS_SIZE)
 INTEGER, ALLOCATABLE, DIMENSION(:)       ::  ibuf, vbuf
+
+CALL tlfStartSingleTimer(idDataGatherTimer)
 
 IF ( mype == 0 ) THEN
     arr2Dglobal(myList_edge2D(1:myDim_edge2D))=arr2D(1:myDim_edge2D)
@@ -2010,6 +2111,9 @@ ELSE
                    MPI_COMM_FESOM_C, MPIerr )
 ENDIF
 CALL MPI_BARRIER(MPI_COMM_FESOM_C,MPIerr)
+
+CALL tlfStopSingleTimer(idDataGatherTimer)
+
 end subroutine gather_edg2D_i
 !==============================================
 

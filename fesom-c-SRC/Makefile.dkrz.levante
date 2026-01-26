@@ -36,6 +36,8 @@ EXE = fesom_coast.exe
 
 OBJECTS= fv_var.o                  \
       gen_modules_partitioning_c.o \
+      timerLibFortran.o            \
+      profilingTimers.o            \
       gen_modules_rotate_grid_c.o  \
       gen_halo_exchange_c.o        \
       fv_utilit.o               \

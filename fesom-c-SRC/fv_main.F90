@@ -24,6 +24,9 @@ PROGRAM MAIN
   use talcc_c_bindings, only: printAffinityBindingC
   use omp_lib
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   integer      :: i, k, n, period_m2, out_fft, istep, ist,elnodes(4), nz, rk, rk2, turn_on_riv, n_dt2, flag_riv,vsp(11)
@@ -66,6 +69,9 @@ PROGRAM MAIN
   call printAffinityBindingC(mype, -1)
 #endif
 
+  ! natESM
+  ! CALL ptInitTimerSpace()
+  ! natESM
 
  !aa67 print *,'Init phase: mype,npes = ',mype,npes
 
@@ -466,6 +472,10 @@ if ((riv).or.(riv_ob)) call initial_riv
 
 !nsteps=870 ! 200  !2000   !400  !8000
 
+  ! natESM
+  CALL ptInitTimerSpace()
+  ! natESM
+
 #ifdef USE_MPI 
   t0=MPI_Wtime()
 #else
@@ -476,6 +486,8 @@ if ((riv).or.(riv_ob)) call initial_riv
 
   activeTimer = .FALSE.
   do n_dt = 1, nsteps
+
+    CALL tlfStartSingleTimer(idMainLoopTimer)
 
     if(activeTimer .EQV. .FALSE.) then
         activeTimer = .TRUE.
@@ -640,6 +652,13 @@ end if
      ! ouput only for control
      !=======================
 
+     CALL tlfStopSingleTimer(idMainLoopTimer)
+#if 0
+     IF( (mype == 0) .AND. (n_dt == 1) ) THEN        
+        CALL tlfPrintSingleTimerStatus(idDataExchangeTimer, 2)
+     END IF
+#endif
+
      if ( (mype == 0) .AND. (mod(n_dt,25) == 0) ) then
         WRITE(*,*) "ITER ", n_dt
      end if        
@@ -661,6 +680,22 @@ end if
      rse_tStep = rse_tStepFinish - rse_tStepStart
      write(*,'(1x,A,1x,I5,1x,F12.5)') "*CONTROL POINT* time step: ", n_dt, rse_tStep
 #endif
+
+#if 0
+     IF(mype == 0) THEN
+        CALL tlfPrintSingleTimerStatus(idMainLoopTimer,      2)
+        CALL tlfPrintSingleTimerStatus(idDataExchangeTimer,  1)
+        CALL tlfPrintSingleTimerStatus(idDataBroadcastTimer, 1)
+        CALL tlfPrintSingleTimerStatus(idDataGatherTimer,    1)
+     END IF
+#endif
+
+     CALL ptAnalizeControlPoint()
+
+! ==================================================================================================================================
+! ==================================================================================================================================
+! ==================================================================================================================================
+#if 0
 
 #ifdef USE_MPI
         call MPI_AllREDUCE(maxval(eta_n),mx_eta, 1, MPI_DOUBLE_PRECISION, MPI_MAX, &
@@ -788,6 +823,7 @@ end if
                  endif
 #endif                 
               endif
+
               write(*,*) 'dt_2D', dt_2D, mype
               If (comp_sediment) then
 #ifdef USE_MPI
@@ -822,7 +858,14 @@ end if
               endif
            endif
         endif
+
+#endif
+! ==================================================================================================================================
+! ==================================================================================================================================
+! ==================================================================================================================================
+
      end if
+
      !aaa output for LE only!!!!
 !SH skipped for now     if ( mod(n_dt, IREC)==0 ) then
 !SH skipped for now        if (type_task>1) call cross_sec_LE
