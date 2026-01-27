@@ -21,6 +21,7 @@ MODULE timerLibFortran
     PUBLIC :: tlfNewSingleTimer
     PUBLIC :: tlfStartSingleTimer
     PUBLIC :: tlfStopSingleTimer
+    PUBLIC :: tlfRebootSingleTimer
     PUBLIC :: tlfGetSingleTimerFieldValueDP, tlfGetSingleTimerFieldValueI
     PUBLIC :: tlfPrintSingleTimerStatus
     PUBLIC :: tlfInitIntegralTimerSpace
@@ -80,7 +81,7 @@ MODULE timerLibFortran
         LOGICAL            :: stat
         CHARACTER(len=128) :: name
         
-        DOUBLE PRECISION   :: totT   
+        DOUBLE PRECISION   :: totT
         DOUBLE PRECISION   :: lastT
 
         INTEGER            :: numMembers
@@ -146,7 +147,7 @@ MODULE timerLibFortran
         IF(PRESENT(idTimerIn)) THEN
             IF(timerSpaceHeaders(idTimerIn)%stat .EQV. .FALSE.) THEN
                 idTimerOut = idTimerIn
-            ELSE                
+            ELSE
                 WRITE(*, '(A,I0,A)') "ERROR => tlfNewSingleTimer: Timer with id = ", idTimerIn, " already exists."
                 ERROR STOP
             END IF
@@ -171,7 +172,7 @@ MODULE timerLibFortran
         END IF
 
         timerSpaceHeaders(idTimerOut)%name = ""
-        IF(PRESENT(name)) THEN            
+        IF(PRESENT(name)) THEN
             IF(len_trim(name) > 0) THEN
                 timerSpaceHeaders(idTimerOut)%name = name(1:min(128, len_trim(name)))
             END IF
@@ -194,12 +195,12 @@ MODULE timerLibFortran
 
         INTEGER, INTENT(in) :: idTimer
 
-        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN            
+        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfStartSingleTimer: Timer with id=", idTimer, " does not exist."
             ERROR STOP
         END IF
 
-        IF(timerSpaceCores(idTimer)%stat .EQV. .TRUE.) THEN            
+        IF(timerSpaceCores(idTimer)%stat .EQV. .TRUE.) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfStartSingleTimer: Timer with id=", idTimer, " is already running."
             ERROR STOP
         END IF
@@ -215,12 +216,12 @@ MODULE timerLibFortran
 
         INTEGER, INTENT(in) :: idTimer
         
-        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN            
+        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfStopSingleTimer: Timer with id=", idTimer, " does not exist."
             ERROR STOP
         END IF
 
-        IF(timerSpaceCores(idTimer)%stat .EQV. .FALSE.) THEN            
+        IF(timerSpaceCores(idTimer)%stat .EQV. .FALSE.) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfStopSingleTimer: Timer with id=", idTimer, " was not started."
             ERROR STOP
         END IF
@@ -234,7 +235,6 @@ MODULE timerLibFortran
             timerSpaceCores(idTimer)%minT = timerSpaceCores(idTimer)%lastT
             timerSpaceCores(idTimer)%maxT = timerSpaceCores(idTimer)%lastT
             timerSpaceCores(idTimer)%avgT = timerSpaceCores(idTimer)%lastT
-
         ELSE
             timerSpaceCores(idTimer)%nCall = timerSpaceCores(idTimer)%nCall + 1
             timerSpaceCores(idTimer)%minT = min(timerSpaceCores(idTimer)%minT, timerSpaceCores(idTimer)%lastT)
@@ -243,6 +243,35 @@ MODULE timerLibFortran
         END IF
 
     END SUBROUTINE tlfStopSingleTimer
+
+    SUBROUTINE tlfRebootSingleTimer(idTimer)
+
+        IMPLICIT NONE
+
+        INTEGER, INTENT(in) :: idTimer
+
+        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN
+            WRITE(*, '(A,I0,A)') "ERROR => tlfRebootSingleTimer: Timer with id=", idTimer, " does not exist."
+            ERROR STOP
+        END IF
+
+        IF(timerSpaceCores(idTimer)%stat .EQV. .TRUE.) THEN
+            WRITE(*, '(A,I0,A)') "ERROR => tlfRebootSingleTimer: Timer with id=", idTimer, " is currently running."
+            ERROR STOP
+        END IF
+
+        timerSpaceCores(idTimer)%startMark = 0.0D0
+        timerSpaceCores(idTimer)%totT      = 0.0D0
+        timerSpaceCores(idTimer)%minT      = 0.0D0
+        timerSpaceCores(idTimer)%maxT      = 0.0D0
+        timerSpaceCores(idTimer)%avgT      = 0.0D0
+        timerSpaceCores(idTimer)%lastT     = 0.0D0
+        timerSpaceCores(idTimer)%nCall     = 0
+
+        WRITE(*,'(A,I0,A,A,A)') 'tlfRebootSingleTimer: Reboot timer with id=', idTimer, &
+        & ', name="', trim(timerSpaceHeaders(idTimer)%name), '"'
+
+    END SUBROUTINE tlfRebootSingleTimer
 
     FUNCTION tlfGetSingleTimerFieldValueDP(idTimer, idField) result(fieldValue)
 
@@ -300,12 +329,12 @@ MODULE timerLibFortran
         INTEGER                       :: fmt
 
 
-        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN            
+        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfPrintSingleTimerStatus: Timer with id=", idTimer, " does not exist."
             ERROR STOP
         END IF
 
-        IF(timerSpaceCores(idTimer)%stat .EQV. .TRUE.) THEN            
+        IF(timerSpaceCores(idTimer)%stat .EQV. .TRUE.) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfPrintSingleTimerStatus: Timer with id=", idTimer, " is currently running."
             ERROR STOP
         END IF
@@ -398,7 +427,7 @@ MODULE timerLibFortran
         IF(PRESENT(idTimerIn)) THEN
             IF(integralTimerSpace(idTimerIn)%stat .EQV. .FALSE.) THEN
                 idTimerOut = idTimerIn
-            ELSE                
+            ELSE
                 WRITE(*, '(A,I0,A)') "ERROR => tlfNewIntegralTimer: Integral timer with id = ", idTimerIn, " already exists."
                 ERROR STOP
             END IF
@@ -423,14 +452,14 @@ MODULE timerLibFortran
         END IF
 
         integralTimerSpace(idTimerOut)%name = ""
-        IF(PRESENT(name)) THEN            
+        IF(PRESENT(name)) THEN
             IF(len_trim(name) > 0) THEN
                 integralTimerSpace(idTimerOut)%name = name(1:min(128, len_trim(name)))
             END IF
         ENDIF
 
         integralTimerSpace(idTimerOut)%idTimer = idTimerOut
-        integralTimerSpace(idTimerOut)%stat    = .TRUE.        
+        integralTimerSpace(idTimerOut)%stat    = .TRUE.
 
         numActiveIntegralTimers = numActiveIntegralTimers + 1
 
@@ -488,7 +517,7 @@ MODULE timerLibFortran
 
         WRITE(*,'(A)') "********** INTEGRAL TIMER **********"
         WRITE(*,'(A,A,A)') 'NAME: "', TRIM(integralTimerSpace(idIntegralTimer)%name), '"'
-        
+
         IF(integralTimerSpace(idIntegralTimer)%numMembers == 0) THEN
             WRITE(*,'(A)') "No Single Timers are attached to the Integral Timer"
         END IF
@@ -497,7 +526,7 @@ MODULE timerLibFortran
         WRITE(*,'(A)') "  ID     NAME"
         DO iTimer = 1, integralTimerSpace(idIntegralTimer)%numMembers
 
-            idCoreTimer = integralTimerSpace(idIntegralTimer)%listOfSingleTimers(iTimer)            
+            idCoreTimer = integralTimerSpace(idIntegralTimer)%listOfSingleTimers(iTimer)
             WRITE(*,'(I4,5x,A,A,A)') idCoreTimer, '"', TRIM(timerSpaceHeaders(idCoreTimer)%name), '"'
 
         END DO
@@ -523,7 +552,7 @@ MODULE timerLibFortran
 
             idCoreTimer = integralTimerSpace(idIntegralTimer)%listOfSingleTimers(iTimer)
 
-            IF(timerSpaceCores(idCoreTimer)%stat .EQV. .TRUE.) THEN            
+            IF(timerSpaceCores(idCoreTimer)%stat .EQV. .TRUE.) THEN
                 WRITE(*, '(A,I0,A)') "ERROR => tlfUpdateIntegralTimer: Timer with id=", idCoreTimer, " is currently running."
                 ERROR STOP
             END IF
@@ -592,11 +621,10 @@ MODULE timerLibFortran
 
         INTEGER                       :: fmt
 
-
-        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN            
+        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfPrintIntegralTimerStatus: Integral timer with id=", idTimer, " does not exist."
             ERROR STOP
-        END IF        
+        END IF
 
         fmt = 0
         IF(PRESENT(fmtIn)) THEN
@@ -607,8 +635,8 @@ MODULE timerLibFortran
         IF(fmt == 0) THEN
             WRITE(*,'(a)') 'Integral Timer Information:'
             WRITE(*,'(a,i12)') '  ID            : ', integralTimerSpace(idTimer)%idTimer
-            WRITE(*,'(a,a)')  '  Name          : ', trim(integralTimerSpace(idTimer)%name)            
-            WRITE(*,'(a)')    '  Time (s):'            
+            WRITE(*,'(a,a)')  '  Name          : ', trim(integralTimerSpace(idTimer)%name)
+            WRITE(*,'(a)')    '  Time (s):'
             WRITE(*,'(a,G12.5)') '    Total       : ', integralTimerSpace(idTimer)%totT
             WRITE(*,'(a,G12.5)') '    Last        : ', integralTimerSpace(idTimer)%lastT
         END IF
@@ -706,7 +734,7 @@ MODULE timerLibFortran
 
         INTEGER, INTENT(in)           :: idTimer
 
-        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN            
+        IF(timerSpaceCores(idTimer)%idTimer == -1) THEN
             WRITE(*, '(A,I0,A)') "ERROR => tlfPrintIntegralTimerStatusMPI: Integral timer with id=", idTimer, " does not exist."
             ERROR STOP
         END IF
@@ -722,36 +750,11 @@ MODULE timerLibFortran
             integralTimerSpace(idTimer)%mpiAvgTotT, integralTimerSpace(idTimer)%mpiTotT
         WRITE(*, '(A,2x,G13.5,2x,G13.5,2x,G13.5,2x,G13.5)') &
             '   LAST', integralTimerSpace(idTimer)%mpiMinLastT, integralTimerSpace(idTimer)%mpiMaxLastT, &
-            integralTimerSpace(idTimer)%mpiAvgLastT, integralTimerSpace(idTimer)%mpiLastT        
+            integralTimerSpace(idTimer)%mpiAvgLastT, integralTimerSpace(idTimer)%mpiLastT
 
     END SUBROUTINE tlfPrintIntegralTimerStatusMPI
 #endif
 
-
-
 END MODULE timerLibFortran
 
 #undef _TLF_USE_MPI_
-
-#if 0
-INTEGER            :: idTimer
-
-        LOGICAL            :: stat
-        CHARACTER(len=128) :: name
-        
-        DOUBLE PRECISION   :: totT   
-        DOUBLE PRECISION   :: lastT
-
-        INTEGER            :: numMembers
-        INTEGER            :: listOfSingleTimers(timerSpaceSize)
-
-        INTEGER            :: numPE
-        DOUBLE PRECISION   :: mpiTotT
-        DOUBLE PRECISION   :: mpiMinTotT
-        DOUBLE PRECISION   :: mpiMaxTotT
-        DOUBLE PRECISION   :: mpiAvgTotT
-        DOUBLE PRECISION   :: mpiLastT
-        DOUBLE PRECISION   :: mpiMinLastT
-        DOUBLE PRECISION   :: mpiMaxLastT
-        DOUBLE PRECISION   :: mpiAvgLastT
-#endif

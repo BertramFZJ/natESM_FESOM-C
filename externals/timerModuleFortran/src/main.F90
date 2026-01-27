@@ -104,7 +104,7 @@ program main
         CALL tlfStartSingleTimer(idTimerStageFT)
         DO col = 1, nCol
             DO row = 1, nRow
-                funcT(row, col) = funcA(row, col) + funcB(row, col)                
+                funcT(row, col) = funcA(row, col) + funcB(row, col)
             END DO
         END DO
         CALL tlfStopSingleTimer(idTimerStageFT)
@@ -112,6 +112,13 @@ program main
         IF(mpiRank == 0) WRITE(*,*) "ITER: ", idIter
         ! WRITE(*,*) MINVAL(arg2D(:,:)), " ", MAXVAL(arg2D(:,:))
         ! WRITE(*,*) 1.0 - MINVAL(funcT(:,:)), " ", MAXVAL(funcT(:,:)) - 1.0
+
+        IF(idIter == 4) THEN
+            CALL tlfRebootSingleTimer(idTimerStageArg)
+            CALL tlfRebootSingleTimer(idTimerStageFA)
+            CALL tlfRebootSingleTimer(idTimerStageFB)
+            CALL tlfRebootSingleTimer(idTimerStageFT)
+        END IF
 
     END DO
     CALL tlfStopSingleTimer(idTimerGlobal)
