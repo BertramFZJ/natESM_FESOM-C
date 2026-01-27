@@ -14,6 +14,7 @@ MODULE profilingTimers
     PUBLIC :: idMainLoopTimer, idDataExchangeTimer, idDataBroadcastTimer, idDataGatherTimer
 
     PUBLIC :: ptInitTimerSpace
+    PUBLIC :: ptRebootTimerSpace
     PUBLIC :: ptAnalizeControlPoint
 
     INTEGER :: idMainLoopTimer
@@ -35,6 +36,17 @@ MODULE profilingTimers
         idDataGatherTimer    = tlfNewSingleTimer("Data Gather Timer")
 
     END SUBROUTINE ptInitTimerSpace
+
+    SUBROUTINE ptRebootTimerSpace
+
+        IMPLICIT NONE
+
+        CALL tlfRebootSingleTimer(idMainLoopTimer)
+        CALL tlfRebootSingleTimer(idDataExchangeTimer)
+        CALL tlfRebootSingleTimer(idDataBroadcastTimer)
+        CALL tlfRebootSingleTimer(idDataGatherTimer)
+
+    END SUBROUTINE ptRebootTimerSpace
 
     SUBROUTINE ptAnalizeControlPoint
 

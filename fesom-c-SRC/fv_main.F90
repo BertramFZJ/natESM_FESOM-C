@@ -70,7 +70,7 @@ PROGRAM MAIN
 #endif
 
   ! natESM
-  ! CALL ptInitTimerSpace()
+  CALL ptInitTimerSpace()
   ! natESM
 
  !aa67 print *,'Init phase: mype,npes = ',mype,npes
@@ -473,7 +473,7 @@ if ((riv).or.(riv_ob)) call initial_riv
 !nsteps=870 ! 200  !2000   !400  !8000
 
   ! natESM
-  CALL ptInitTimerSpace()
+  CALL ptRebootTimerSpace()
   ! natESM
 
 #ifdef USE_MPI 
