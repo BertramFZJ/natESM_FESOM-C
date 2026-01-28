@@ -2,9 +2,11 @@ FC = mpiifx
 CC = mpiicx
 LINK = $(FC)
 
+# UPDATE3DFLAG = -DUSE_3D_UPDATE
+UPDATE3DFLAG =
 MPIFLAGS = -DUSE_MPI
 # MPIFLAGS = 
-FCFLAGS = -O3  -march=native -funroll-loops -heap-arrays 0 $(MPIFLAGS)
+FCFLAGS = -O3  -march=native -funroll-loops -heap-arrays 0 $(MPIFLAGS) $(UPDATE3DFLAG)
 # FCFLAGS = $(MPIFLAGS) -g -traceback -O0 -fpe-trap=invalid,overflow,zero
 # FCFLAGS = -O3 -qopenmp -march=native -funroll-loops -heap-arrays 0 $(MPIFLAGS)
 

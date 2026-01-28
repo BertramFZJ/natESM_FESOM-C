@@ -2,8 +2,11 @@ FC = mpiifort
 CC = mpiicc
 LINK = $(FC)
 
+# UPDATE3DFLAG = -DUSE_3D_UPDATE
+UPDATE3DFLAG =
 MPIFLAGS = -DUSE_MPI
-FCFLAGS = -O3 -march=native -funroll-loops  $(MPIFLAGS)
+# MPIFLAGS = 
+FCFLAGS = -O3 -march=native -funroll-loops  $(MPIFLAGS) $(UPDATE3DFLAG)
 
 .SUFFIXES: .F90 .o
 

@@ -281,7 +281,11 @@ subroutine d3_end
 	!endif
         scale_t = cka*Zh*Zd*Z0/dmean
         snu(nz,node) = scale_t*sqrt(bt(nz,node)) + snul
+#ifndef USE_3D_UPDATE
         if (snu(nz,node) >= 0.2_WP) snu(nz,node) = 0.2_WP
+#else
+        if (snu(nz,node) >= 1.2_WP) snu(nz,node) = 1.2_WP
+#endif
         Kv(nz,node) = Pr_num*(snu(nz,node))
      end do
 

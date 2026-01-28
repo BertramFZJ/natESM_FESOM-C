@@ -18,7 +18,7 @@ GK_DIR = ../../libs-SRC/GKlib
 LIB_GK = -L$(GK_DIR)/lib -lGK
 GK_INC = -I$(GK_DIR)
 
-OPT = -O3  -march=native -funroll-loops -cpp
+OPT = -O3  -march=native -funroll-loops -heap-arrays 0 -cpp
 COPT = -O3  -march=native -funroll-loops
 CPP_DEFS = -DFVOM_INIT
 

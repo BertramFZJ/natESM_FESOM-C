@@ -39,8 +39,12 @@ real(kind=WP)                 :: K_hor=.010_WP
 real(kind=WP)                 :: A_ver=0.001_WP                   ! Vertical harm. visc.
 real(kind=WP)                 :: K_ver=0.00001_WP
 real(kind=WP)                 :: mix_coeff_PP=0.005_WP
+#ifndef USE_3D_UPDATE
 real(kind=WP)                 :: PR_num=0.0001_WP          ! Prandtl number ratio of momentum diffusivity
                                                          ! SNS_BC: PR_num=0.001_WP  SNS, LE : PR_num=0.01_WP
+#else
+real(kind=WP)                 :: PR_num=0.1_WP
+#endif
 !logical, Parameter            :: laplacian=.true.       ! if .false. -----> biharmonic viscosity for 3D momentum eq.
  logical, parameter            :: i_vert_diff=.true.
 
@@ -125,9 +129,13 @@ logical                      :: ex_vert_visc, im_vert_visc, im_vert_visc_fic
 !  vertical mixing scheme
 !++++++++++++++++++++++++++++++
 integer                     :: ver_mix
-Real(kind=WP)               :: beta_scale=3.9_WP      ! 0<=beta_scale<=4  Cut off function for scale
+#ifndef USE_3D_UPDATE
+real(kind=WP)               :: beta_scale=3.9_WP      ! 0<=beta_scale<=4  Cut off function for scale
                                                       ! LE: beta_scale=3.9  SNS: beta_scale=0.0
                                                       ! of turbulence profile. IF beta_scale=0 eq. Montgomery
+#else
+real(kind=WP)               :: beta_scale=0.0_WP
+#endif
 logical, parameter           :: charnock=.true.       ! used in the GOTM subroutine
 !++++++++++++++++++++++++++++++
 !  short wave radiation penetration

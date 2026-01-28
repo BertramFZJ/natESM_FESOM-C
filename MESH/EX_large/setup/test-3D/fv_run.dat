@@ -15,21 +15,21 @@
 ! title_nod2d.out and etc.
 !==============================================================================!
 
- TITLE = LE
+ TITLE = WF
  
 !==============================================================================!
 !                 PARAMETERS CONTROLLING TIME STEPS                            !
 ! dt_2D  - time step for the barotropic mode in seconds                        !
 ! dt  - time step for the baroclinic mode in seconds                           !
 ! nsteps - total amount of barotropic steps                                    !
-! time_jd0 - the Julian day corresponding to the start of simulated period 2452853    !        
+! time_jd0 - the Julian day corresponding to the start of simulated period 24192000
+    !        dt =0.5 nsteps=24192000          0.43666171875
 !==============================================================================!
 
- dt_2D = 0.05
- dt = 0.1
- ! nsteps = 216000
+ dt_2D = 0.2
+ dt = 2.0
  nsteps = 10000
- JD0 = 0.0
+ JD0 = 246008.0
 ! JD0 = 2452853.0
 !===============================================================================!
 !                 PARAMETERS CONTROLLING INPUT/OUTPUT                           !
@@ -43,15 +43,15 @@
 !            0: only during setup,                                              !
 !            1 (default): add diagnostic values in time steps,                  !
 !            2:           add timing of main time stepping loop,                ! 
-!            3:           add timing of time step subroutines                   !
+!            3:           add timing of time step subroutines
+! IREP=600  !!!                   !
 !===============================================================================!
 
  INDIR       = ./
  OUTDIR      = ../OUTPUT/
- MESHPATH    = ../MESH/LE_fine/
-
- IREP = 200         
- IREC = 80000
+ MESHPATH    = ../MESH/EX_large/
+ IREP = 25         
+ IREC = 36000
  IRESTART = 80000
  RESTART  =  cold_start 
 
@@ -64,7 +64,7 @@
 !                         F: SPHERICAL                                          !
 !===============================================================================!
 
- cartesian = T
+ cartesian = F
 
 !===============================================================================!
 !       Coriolis                                                                !     
@@ -73,8 +73,8 @@
 ! If CARTESIAN=T, then, please, specify appropriate latitude value in degree.   !
 !===============================================================================!
 
- Coriolis_TF = F
- lat_cartesian = 50.0
+ Coriolis_TF = T
+ lat_cartesian = 55.6
 
 !===============================================================================!
 !        2D MOMENTUM ADVECTION                                                  !
@@ -108,8 +108,8 @@
 
  vert_adv = 1
  ex_vert_visc = F
- im_vert_visc = T
- im_vert_visc_fic = F
+ im_vert_visc = F
+ im_vert_visc_fic = T
  fic_point = 0
 		
 !===============================================================================!
@@ -138,9 +138,9 @@
 !                       2 - Cd is calculated using z0b_min+z0s_min                         !
 !==========================================================================================!
 
- Cd = .0
- z0b_min = .01
- z0s_min = .02
+ Cd = 0.005
+ z0b_min = .05
+ z0s_min = .05
  za = .00
  BFC = 1
 
@@ -152,11 +152,11 @@
  C_Smag = .2
  A_hor =  0.010
  tau_c = .4
- snul    = 5.e-7
- filt_2D = F
+ snul    = 1.e-5
+ filt_2D = T
  filt_bi_2D = F
  bih_2D = F
- filt_3D = F
+ filt_3D = T
  filt_bi_3D = F
  bih_3D = F
 
@@ -174,7 +174,7 @@
  BAROTROPIC = F
  BAROTROPIC_3D = T
  SALINITY_ON = F
- TEMP_ON = T
+ TEMP_ON = F
  S_const = 35.0
  T_const = 20.0
  
@@ -267,12 +267,14 @@ key_ic = F    ! key to switch ON or OFF module for interpolation of initial cond
 ! Possible harmonics are M2 S2 N2 K2 K1 O1 P1 Q1 Mf Mm Ssa M4.                        !
 ! Please, keep in mind M4 will not take part in potential construction.               !                                                                                 !
 ! If TF_presence = T, the amplitudes and phases of chosen components should           !
-! be provided for the open boundary nodes.                                            !
+! be provided for the open boundary nodes.       S2 N2 K2 K1 O1 P1 Q1 MM MF M4 MN MS 2N S1
+!  
+!
 !=====================================================================================!
 
- TF_presence = F
+ TF_presence = T
  Time_tf  = non-julian
- Harmonics_tf = M2
+ Harmonics_tf = M2 S2 N2 K2 K1 O1 P1 Q1
  T_potential = F
  
 !=========================================================================================================!
@@ -317,8 +319,8 @@ b=7.9
 ! Dcr, Dmin - Critical depth and Minimal depth                                  !
 !===============================================================================!
 
- Dcr = 0.1
- Dmin= 0.25
+ Dcr = 0.07
+ Dmin= 0.03
 
 !=========Parameters Controlling Output Related To Tidal Forcing======================! 
 !This option allows to organize output within tidal period.                           !
@@ -355,15 +357,15 @@ T_step = 46.575 ! Appropriate baroclinic time step (dt), it should be equal to T
  
 !==== Parameter controlling sponge layer======================================================!
 
- SL_obn = F
+ SL_obn = T
  SL_obn_user_def = F  !If you would like to prescribe the sponge layer by your own
                       !please, set T and keep SL_obn also true
- SL_radius = 15000.0  ! Radius defines the area around OBN, where nudging works, [m] 
+ SL_radius = 200000.0  ! Radius defines the area around OBN, where nudging works, [m] 
 
 !==== Parameters, which are controlling stabilization at the ob================================!
 
-mixed_BP_grad_OB = F
-Cd_bz = 0.0  
+mixed_BP_grad_OB = T
+Cd_bz = 5.0  
 Bp_bz = 0.0 
 
 !==== Parameter controlling Open Boundary/Solid Boundary relaxation===========================!
