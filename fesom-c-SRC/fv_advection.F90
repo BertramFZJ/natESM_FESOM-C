@@ -1,3 +1,5 @@
+#define __USE__NATESM_OPT__
+
 ! ******** LE_FINE + GSR TEST CASES ********
 ! CALL SUBROUTINE momentum_vert_adv_upwind
 ! CALL SUBROUTINE momentum_adv_P1_3D_to_2D
@@ -69,6 +71,8 @@ END subroutine momentum_adv_p1
 
 
 !==========================================================================================
+#ifndef __USE__NATESM_OPT__
+
 SUBROUTINE momentum_adv_upwind
  
   ! Linear reconstruction upwind horizontal momentum advection.
@@ -204,6 +208,107 @@ SUBROUTINE momentum_adv_upwind
 
 END SUBROUTINE momentum_adv_upwind
 
+#else
+
+SUBROUTINE momentum_adv_upwind
+
+  USE o_PARAM
+  USE o_MESH
+  USE o_ARRAYS
+
+  USE g_PARSUP
+  use g_comm_auto
+
+  USE timerLibFortran
+  USE profilingTimers
+
+  IMPLICIT NONE
+
+  real(kind=WP)    :: u1, u2, v1, v2
+  real(kind=WP)    :: un, acc  
+  real(kind=WP)    :: uu, vv
+
+  integer          :: ed, el1, el2, nz
+  integer          :: edglim
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_upwind"
+  CALL tlfStartSingleTimer(id_momentum_adv_upwind)
+
+#ifdef USE_MPI
+  edglim=myDim_edge2D+eDim_edge2D
+#else
+  edglim=edge2D_in
+#endif
+
+  DO ed=1, edglim
+
+#ifdef USE_MPI
+     if (myList_edge2D(ed)>edge2D_in) cycle
+#endif
+
+     el1 = edge_tri(1,ed)
+     el2 = edge_tri(2,ed)
+
+     acc = 0.5_WP * ( ac(edge_nodes(1,ed)) + ac(edge_nodes(2,ed)) )
+
+     ! Only faces that do not belong to
+     ! vertical walls can contribute to
+     ! the momentum advection 
+
+     do nz=1,nsigma-1
+        !====== 
+        ! The piece below gives second order spatial accuracy for
+        ! the momentum fluxes. 
+        !======
+        u1 = U_n(nz,el1)- vel_grad_ux(nz,el1)*edge_cross_dxdy(1,ed) &
+             -vel_grad_uy(nz,el1)*edge_cross_dxdy(2,ed)
+        v1 = V_n(nz,el1)- vel_grad_vx(nz,el1)*edge_cross_dxdy(1,ed) &
+             -vel_grad_vy(nz,el1)*edge_cross_dxdy(2,ed)
+        u2 = U_n(nz,el2)- vel_grad_ux(nz,el2)*edge_cross_dxdy(3,ed) &
+             -vel_grad_uy(nz,el2)*edge_cross_dxdy(4,ed)
+        v2 = V_n(nz,el2)- vel_grad_vx(nz,el2)*edge_cross_dxdy(3,ed) &
+             -vel_grad_vy(nz,el2)*edge_cross_dxdy(4,ed)
+
+        !======
+        ! Normal velocity at edge ed directed to el(2)
+        ! (outer to el(1)) multiplied with the length of the edge
+        ! and mean depth dmean
+        !======
+        un = 0.5_WP* r_earth* Jd(nz,ed)* &
+           ((u1+u2)*edge_dxdy(2,ed) - (v1*elem_cos(el1)+v2*elem_cos(el2))*edge_dxdy(1,ed))
+
+        !======
+        ! If it is positive, take velocity in the left element (el(1)),
+        ! and use the velocity at el(2) otherwise.
+        !======  
+
+        if(un>=0.0_WP) then
+           uu = u1*un*acc    
+           vv = v1*un*acc
+        else    
+           uu = u2*un*acc    
+           vv = v2*un*acc
+        end if
+
+        U_rhsAB(nz,el1) = U_rhsAB(nz,el1) - uu
+        V_rhsAB(nz,el1) = V_rhsAB(nz,el1) - vv
+
+        U_rhsAB(nz,el2) = U_rhsAB(nz,el2) + uu
+        V_rhsAB(nz,el2) = V_rhsAB(nz,el2) + vv
+
+     END DO
+  END DO
+
+  CALL tlfStopSingleTimer(id_momentum_adv_upwind)
+
+#ifdef USE_MPI
+  call exchange_elem(U_rhsAB)
+  call exchange_elem(V_rhsAB)
+#endif
+
+END SUBROUTINE momentum_adv_upwind
+
+#endif
 ! ============================================================================
 
 SUBROUTINE momentum_vert_adv
