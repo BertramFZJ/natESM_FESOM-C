@@ -71,6 +71,7 @@ PROGRAM MAIN
 
   ! natESM
   CALL ptInitTimerSpace()
+  CALL ptInitAdvectionTimerGroup()
   ! natESM
 
  !aa67 print *,'Init phase: mype,npes = ',mype,npes
@@ -474,6 +475,7 @@ if ((riv).or.(riv_ob)) call initial_riv
 
   ! natESM
   CALL ptRebootTimerSpace()
+  CALL ptRebootAdvectionTimerGroup()
   ! natESM
 
 #ifdef USE_MPI 
@@ -692,6 +694,7 @@ end if
 #endif
 
      CALL ptAnalizeControlPoint()
+     CALL ptAnalizeAdvectionTimerGroup()
 
 ! ==================================================================================================================================
 ! ==================================================================================================================================
@@ -778,8 +781,15 @@ end if
         if (mype==0) then
            print *,'Energy ENERGY ENERGY : ',eout
 
-           !write(52,'(3e13.5)') time/3600.0_WP,U_n_2D
-           write(53,'(4e16.7)') time/86400.0_WP-time_jd0,eout
+           ! write(52,'(3e13.5)') time/3600.0_WP,U_n_2D
+           ! write(53,'(2e16.7)') time/86400.0_WP-time_jd0,eout
+           ! write(*,*) '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+           ! write(*,*) time/86400.0_WP-time_jd0,eout
+           ! write(53,*) time/86400.0_WP-time_jd0,eout
+           ! close(53)
+           ! STOP
+           ! write(*,*) '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+
            if (iverbosity >= 1) then
               write(*,*) 'time= ',time/86400.0_WP-time_jd0,'time_all= ',time/86400.0_WP-time_jd0_orig
               write(*,*)  ' energy= ',eout

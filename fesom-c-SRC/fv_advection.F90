@@ -1,3 +1,9 @@
+! ******** LE_FINE + GSR TEST CASES ********
+! CALL SUBROUTINE momentum_vert_adv_upwind
+! CALL SUBROUTINE momentum_adv_P1_3D_to_2D
+! CALL SUBROUTINE momentum_adv_upwind_2D
+! CALL SUBROUTINE momentum_adv_upwind
+
 ! ============================================================================
 SUBROUTINE momentum_adv_p1
 !
@@ -17,7 +23,9 @@ real(kind=WP)  :: tx, ty, uu, vv
 real(kind=WP)  :: un, u1, v1, xe, ye, acc
 integer       :: n, elem, nz, k,  m
 integer       :: nodes(2), el(2), ed
- 
+
+WRITE(*,*) "CALL SUBROUTINE momentum_adv_p1"
+
  DO ed=1, edge2D_in
    nodes=edge_nodes(:,ed)   
    el=edge_tri(:,ed)
@@ -78,17 +86,22 @@ SUBROUTINE momentum_adv_upwind
   USE g_PARSUP
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   real(kind=WP)    :: u1, u2, v1, v2
   real(kind=WP)    :: un, acc
   integer          :: ed, el(2), nz
   integer          :: nthreads, chunk, me_el1, me_el2, me
-  !real(kind=WP)    :: uu(nsigma-1,edge2D_in), vv(nsigma-1,edge2D_in)
-  !SHTEST
+
   real(kind=WP)    :: uu(nsigma-1,myDim_edge2D+eDim_edge2D), vv(nsigma-1,myDim_edge2D+eDim_edge2D)
 
   integer :: edglim
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_upwind"
+  CALL tlfStartSingleTimer(id_momentum_adv_upwind)
 
   uu(:,:)=0.0_WP; vv(:,:)=0.0_WP
   
@@ -96,13 +109,12 @@ SUBROUTINE momentum_adv_upwind
   ! Horizontal momentum advection   -\int div(uu)dS=-\sum u(un)l
   ! (assembly over edges)        
   ! ======================
-!$OMP PARALLEL PRIVATE(u1,u2,v1,v2,un,acc,ed,el,nz,me_el1, me_el2,chunk,nthreads)
- 
-  !$  nthreads = omp_get_num_threads()
-  !$  me = omp_get_thread_num()
-  !$  chunk = elem2D / nthreads + 1 
-  !$  me_el1 = me*chunk +1
-  !$  me_el2 = min((me+1)*chunk, elem2D)
+
+  ! nthreads = omp_get_num_threads()
+  ! me = omp_get_thread_num()
+  ! chunk = elem2D / nthreads + 1
+  ! me_el1 = me*chunk +1
+  ! me_el2 = min((me+1)*chunk, elem2D)
 
 #ifdef USE_MPI
   edglim=myDim_edge2D+eDim_edge2D
@@ -110,19 +122,18 @@ SUBROUTINE momentum_adv_upwind
   edglim=edge2D_in
 #endif
 
-!$OMP DO
+  ! !$OMP PARALLEL DO PRIVATE(u1,u2,v1,v2,un,acc,ed,el,nz) NUM_THREADS(2)
   DO ed=1, edglim
 
 #ifdef USE_MPI
      if (myList_edge2D(ed)>edge2D_in) cycle
 #endif
 
-     el=edge_tri(:,ed)
+     el(1) = edge_tri(1,ed)
+     el(2) = edge_tri(2,ed)
 
-     if (minval(el)==0) print *,mype,'OBACHT!!! edge discrepancy'
-     
+     ! if (minval(el)==0) print *,mype,'OBACHT!!! edge discrepancy'
      acc = 0.5_WP * sum(ac(edge_nodes(:,ed)))
-
      
      ! Only faces that do not belong to
      ! vertical walls can contribute to
@@ -155,7 +166,7 @@ SUBROUTINE momentum_adv_upwind
         ! and use the velocity at el(2) otherwise.
         !======  
    
-        if(un>=0.0_WP) then    
+        if(un>=0.0_WP) then
            uu(nz,ed) = u1*un*acc    
            vv(nz,ed) = v1*un*acc
         else    
@@ -165,7 +176,7 @@ SUBROUTINE momentum_adv_upwind
    
      END DO
   END DO
-!$OMP END DO
+  ! !$OMP END PARALLEL DO
 
   !NROMP   To be better parallelized! This workarround is not optimal:
   DO ed=1, edglim
@@ -176,18 +187,15 @@ SUBROUTINE momentum_adv_upwind
 
      el=edge_tri(:,ed)
 
-     !$ if (el(1) >= me_el1 .and. el(1)<= me_el2 ) then
      U_rhsAB(1:nsigma-1,el(1)) = U_rhsAB(1:nsigma-1,el(1)) -uu(1:nsigma-1,ed)
      V_rhsAB(1:nsigma-1,el(1)) = V_rhsAB(1:nsigma-1,el(1)) -vv(1:nsigma-1,ed)
-     !$ end if
-     !$ if (el(2) >= me_el1 .and. el(2)<= me_el2 ) then
+
      U_rhsAB(1:nsigma-1,el(2)) = U_rhsAB(1:nsigma-1,el(2)) +uu(1:nsigma-1,ed)
      V_rhsAB(1:nsigma-1,el(2)) = V_rhsAB(1:nsigma-1,el(2)) +vv(1:nsigma-1,ed)
-     !$ end if
 
   ENDDO
 
-!$OMP END PARALLEL
+  CALL tlfStopSingleTimer(id_momentum_adv_upwind)
 
 #ifdef USE_MPI
   call exchange_elem(U_rhsAB)
@@ -219,12 +227,14 @@ SUBROUTINE momentum_vert_adv
 
   real(kind=WP)    :: u_mean(nsigma), v_mean(nsigma)
 
+  WRITE(*,*) "CALL SUBROUTINE momentum_vert_adv"
+
   ! =======================
   ! Vertical momentum advection 
   ! and vertical viscosity
   ! =======================
 
-!$OMP DO 
+  ! !$OMP DO
 
   !NR  I have split the inner loop, nz, to allow for at least
   !NR  some vectorization.
@@ -339,7 +349,7 @@ SUBROUTINE momentum_vert_adv
      endif
 
   END DO
-!$OMP END DO
+  ! !$OMP END DO
 
 #ifdef USE_MPI
   call exchange_elem(U_rhsAB)
@@ -363,12 +373,20 @@ SUBROUTINE momentum_vert_adv_upwind
   USE g_PARSUP
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
+  IMPLICIT NONE
+
   integer          :: elem, elnodes(4), nz
   real(kind=WP)    :: friction
   real(kind=WP)    :: w, acc
   real(kind=WP)    :: umean, vmean, a, b, c, d, dg, da, db
   real(kind=WP)    :: Z1
   real(kind=WP), allocatable  :: uvertAB(:,:)
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_vert_adv_upwind"
+  CALL tlfStartSingleTimer(id_momentum_vert_adv_upwind)
   
   allocate(uvertAB(2,nsigma))
 
@@ -377,7 +395,7 @@ SUBROUTINE momentum_vert_adv_upwind
   ! and vertical viscosity
   ! =======================
   uvertAB=0.0_WP
-  !!$OMP DO
+  ! !$OMP DO
   DO elem=1, myDim_elem2D
  
      If (mask_wd(elem) /= 0.0_WP) then
@@ -456,15 +474,16 @@ SUBROUTINE momentum_vert_adv_upwind
 
      endif
   END DO
-  !!$OMP END DO
+  ! !$OMP END DO
 
-  deallocate(uvertAB) 
+  deallocate(uvertAB)
+
+  CALL tlfStopSingleTimer(id_momentum_vert_adv_upwind)
 
 #ifdef USE_MPI
   call exchange_elem(U_rhsAB)
   call exchange_elem(V_rhsAB)
 #endif
-
 
 END SUBROUTINE momentum_vert_adv_upwind
 
@@ -479,6 +498,8 @@ real(kind=WP)      :: un1, un2, ux, vy, x1, y1, x2, y2, dmean ,acc , fU(4), fV(4
 real(kind=WP), allocatable  ::  Unode_2D(:), Vnode_2D(:) 
 integer              :: n, elem, elnodes(4)
 integer              :: nodes(2), el(2), ed
+
+WRITE(*,*) "CALL SUBROUTINE momentum_adv_scalar_2D"
 
 ! ======
 ! Momentum advection is assembled on on scalar control volumes
@@ -592,6 +613,9 @@ IMPLICIT NONE
 real(kind=WP)        ::  x1, y1, dmean, dmean_sq(nsigma-1)
 integer              :: n, ne, nel
 integer              :: nodes(2)
+
+ WRITE(*,*) "CALL SUBROUTINE riv_mom_adv_3D"
+
  ! =============
  ! boundary edges
  ! =============
@@ -627,6 +651,9 @@ SUBROUTINE momentum_adv_upwind_2D
   use g_parsup
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   integer       :: el(2), ed
@@ -636,6 +663,9 @@ SUBROUTINE momentum_adv_upwind_2D
   real(kind=WP)    :: uu(myDim_edge2D+eDim_edge2D), vv(myDim_edge2D+eDim_edge2D)
   
   integer :: edglim
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_upwind_2D"
+  CALL tlfStartSingleTimer(id_momentum_adv_upwind_2D)
 
   ! ======
   ! Upwind momentum advection with linear velocity reconstruction
@@ -653,7 +683,7 @@ SUBROUTINE momentum_adv_upwind_2D
 #endif
 
 
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(el,ed,un,u1,u2,v1,v2,dmean, acc)
+  ! !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(el,ed,un,u1,u2,v1,v2,dmean, acc)
 
   DO ed=1,edglim
 
@@ -719,7 +749,7 @@ SUBROUTINE momentum_adv_upwind_2D
      
   ENDDO
 
-!$OMP END PARALLEL DO
+  ! !$OMP END PARALLEL DO
 
 !NROMP To be parallelized!
   DO ed=1,edglim
@@ -735,6 +765,7 @@ SUBROUTINE momentum_adv_upwind_2D
      U_rhs_2D(2,el(2)) = U_rhs_2D(2,el(2)) +vv(ed) !*un
   END DO
 
+  CALL tlfStopSingleTimer(id_momentum_adv_upwind_2D)
 
 #ifdef USE_MPI
   call exchange_elem(U_rhs_2D)
@@ -757,6 +788,9 @@ SUBROUTINE momentum_adv_P1_3D_to_2D
   use g_parsup
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   integer       :: elem
@@ -771,6 +805,8 @@ SUBROUTINE momentum_adv_P1_3D_to_2D
   real(kind=WP) :: v_e1(myDim_edge2D+eDim_edge2D), v_e2(myDim_edge2D+eDim_edge2D)
   integer :: edglim
 
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_P1_3D_to_2D"
+  CALL tlfStartSingleTimer(id_momentum_adv_P1_3D_to_2D)
 
   u_e1(:)=0.0_WP; u_e2(:)=0.0_WP; v_e1(:)=0.0_WP; v_e2(:)=0.0_WP
 
@@ -779,14 +815,14 @@ SUBROUTINE momentum_adv_P1_3D_to_2D
   ! and then averaged to triangles. This removes noise
   ! ======
  
-!$OMP PARALLEL DEFAULT(SHARED) PRIVATE(elem,nodes,el,ed,xe,ye,un,acc,uu,vv)
+  ! !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(elem,nodes,el,ed,xe,ye,un,acc,uu,vv)
 
   !=================================== 
   !   Only faces that do not belong to
   !    vertical walls can contribute to
   !         the momentum advection
   !===================================
-!$OMP DO
+  ! !$OMP DO
 
 #ifdef USE_MPI
   edglim=myDim_edge2D+eDim_edge2D
@@ -834,8 +870,8 @@ SUBROUTINE momentum_adv_P1_3D_to_2D
      v_e2(ed) = acc* sum(vv(1:nsigma-1) *un(1:nsigma-1) *Je(1:nsigma-1,el(2)))
    
   END DO
-!$OMP END DO
-!$OMP END PARALLEL 
+  ! !$OMP END DO
+  ! !$OMP END PARALLEL
 
   !NROMP  Loop to be parallelized!
   DO  ed=1, edglim
@@ -858,6 +894,8 @@ SUBROUTINE momentum_adv_P1_3D_to_2D
   !NR    U_rhs_2D_3D(1,elem) = U_rhs_2D_3D(1,elem) + sum(U_3Dadv_puls(1:nsigma-1,elem)*Je(1:nsigma-1,elem))
   !NR    U_rhs_2D_3D(2,elem) = U_rhs_2D_3D(2,elem) + sum(V_3Dadv_puls(1:nsigma-1,elem)*Je(1:nsigma-1,elem))
   !NR END DO
+
+  CALL tlfStopSingleTimer(id_momentum_adv_P1_3D_to_2D)
 
 #ifdef USE_MPI
   call exchange_elem(U_rhs_2D_3D)
@@ -884,6 +922,8 @@ real(kind=WP), allocatable  ::  Unode_rhs(:,:), Vnode_rhs(:,:)
 integer                :: n, elem, nz, k, elnodes(4), m
 integer                :: nl1, nl2, nodes(2), el(2), ed
 integer                :: elnodes_1(4), elnodes_2(4)
+
+WRITE(*,*) "CALL SUBROUTINE momentum_adv_scalar_3D"
 
 ! ======
 ! Momentum advection on scalar control volumes

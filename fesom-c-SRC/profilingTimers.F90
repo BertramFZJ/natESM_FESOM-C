@@ -12,15 +12,25 @@ MODULE profilingTimers
     PRIVATE
 
     PUBLIC :: idMainLoopTimer, idDataExchangeTimer, idDataBroadcastTimer, idDataGatherTimer
+    PUBLIC :: id_momentum_vert_adv_upwind, id_momentum_adv_P1_3D_to_2D
+    PUBLIC :: id_momentum_adv_upwind_2D, id_momentum_adv_upwind
 
     PUBLIC :: ptInitTimerSpace
     PUBLIC :: ptRebootTimerSpace
     PUBLIC :: ptAnalizeControlPoint
+    PUBLIC :: ptInitAdvectionTimerGroup
+    PUBLIC :: ptRebootAdvectionTimerGroup
+    PUBLIC :: ptAnalizeAdvectionTimerGroup
 
     INTEGER :: idMainLoopTimer
     INTEGER :: idDataExchangeTimer
     INTEGER :: idDataBroadcastTimer
     INTEGER :: idDataGatherTimer
+
+    INTEGER :: id_momentum_vert_adv_upwind
+    INTEGER :: id_momentum_adv_P1_3D_to_2D
+    INTEGER :: id_momentum_adv_upwind_2D
+    INTEGER :: id_momentum_adv_upwind
 
     CONTAINS
 
@@ -37,6 +47,17 @@ MODULE profilingTimers
 
     END SUBROUTINE ptInitTimerSpace
 
+    SUBROUTINE ptInitAdvectionTimerGroup
+
+        IMPLICIT NONE
+
+        id_momentum_vert_adv_upwind = tlfNewSingleTimer("FV ADV momentum_vert_adv_upwind")
+        id_momentum_adv_P1_3D_to_2D = tlfNewSingleTimer("FV ADV momentum_adv_P1_3D_to_2D")
+        id_momentum_adv_upwind_2D   = tlfNewSingleTimer("FV ADV momentum_adv_upwind_2D")
+        id_momentum_adv_upwind      = tlfNewSingleTimer("FV ADV momentum_adv_upwind")
+
+    END SUBROUTINE ptInitAdvectionTimerGroup
+
     SUBROUTINE ptRebootTimerSpace
 
         IMPLICIT NONE
@@ -47,6 +68,17 @@ MODULE profilingTimers
         CALL tlfRebootSingleTimer(idDataGatherTimer)
 
     END SUBROUTINE ptRebootTimerSpace
+
+    SUBROUTINE ptRebootAdvectionTimerGroup
+
+        IMPLICIT NONE
+
+        CALL tlfRebootSingleTimer(id_momentum_vert_adv_upwind)
+        CALL tlfRebootSingleTimer(id_momentum_adv_P1_3D_to_2D)
+        CALL tlfRebootSingleTimer(id_momentum_adv_upwind_2D)
+        CALL tlfRebootSingleTimer(id_momentum_adv_upwind)
+
+    END SUBROUTINE ptRebootAdvectionTimerGroup
 
     SUBROUTINE ptAnalizeControlPoint
 
@@ -83,5 +115,16 @@ MODULE profilingTimers
 #endif
 
     END SUBROUTINE ptAnalizeControlPoint
+
+    SUBROUTINE ptAnalizeAdvectionTimerGroup
+
+        IMPLICIT NONE
+
+        CALL tlfPrintSingleTimerStatus(id_momentum_vert_adv_upwind, 2)
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_P1_3D_to_2D, 1)
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind_2D,   1)
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind,      1)
+
+    END SUBROUTINE ptAnalizeAdvectionTimerGroup
 
 END MODULE profilingTimers

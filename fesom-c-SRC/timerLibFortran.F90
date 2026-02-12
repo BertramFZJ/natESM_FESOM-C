@@ -1,4 +1,4 @@
-#define _TLF_USE_MPI_
+! #define _TLF_USE_MPI_
 
 MODULE timerLibFortran
 
