@@ -1,4 +1,5 @@
-#define __USE__NATESM_OPT__
+#define __USE_NATESM_OPT__
+#define __NSIGMA_LIMIT__ 96
 
 ! ******** LE_FINE + GSR TEST CASES ********
 ! CALL SUBROUTINE momentum_vert_adv_upwind
@@ -71,7 +72,7 @@ END subroutine momentum_adv_p1
 
 
 !==========================================================================================
-#ifndef __USE__NATESM_OPT__
+#ifndef __USE_NATESM_OPT__
 
 SUBROUTINE momentum_adv_upwind
  
@@ -240,6 +241,9 @@ SUBROUTINE momentum_adv_upwind
   edglim=edge2D_in
 #endif
 
+  !SS In its current form, OpenMP parallelization using atomic
+  !SS operations is not practical.
+  ! !$OMP PARALLEL DO PRIVATE(u1, u2, v1, v2, un, acc, ed, el1, el2, nz)
   DO ed=1, edglim
 
 #ifdef USE_MPI
@@ -255,7 +259,8 @@ SUBROUTINE momentum_adv_upwind
      ! vertical walls can contribute to
      ! the momentum advection 
 
-     do nz=1,nsigma-1
+     !dir$ ivdep
+     DO nz=1,nsigma-1
         !====== 
         ! The piece below gives second order spatial accuracy for
         ! the momentum fluxes. 
@@ -280,24 +285,29 @@ SUBROUTINE momentum_adv_upwind
         !======
         ! If it is positive, take velocity in the left element (el(1)),
         ! and use the velocity at el(2) otherwise.
-        !======  
+        !======
 
-        if(un>=0.0_WP) then
-           uu = u1*un*acc    
+        IF(un >= 0.0_WP) THEN
+           uu = u1*un*acc
            vv = v1*un*acc
-        else    
-           uu = u2*un*acc    
+        ELSE
+           uu = u2*un*acc
            vv = v2*un*acc
-        end if
+        END IF
 
+        ! !$OMP ATOMIC
         U_rhsAB(nz,el1) = U_rhsAB(nz,el1) - uu
+        ! !$OMP ATOMIC
         V_rhsAB(nz,el1) = V_rhsAB(nz,el1) - vv
 
+        ! !$OMP ATOMIC
         U_rhsAB(nz,el2) = U_rhsAB(nz,el2) + uu
+        ! !$OMP ATOMIC
         V_rhsAB(nz,el2) = V_rhsAB(nz,el2) + vv
 
      END DO
   END DO
+  ! !$OMP END PARALLEL DO
 
   CALL tlfStopSingleTimer(id_momentum_adv_upwind)
 
@@ -465,6 +475,7 @@ SUBROUTINE momentum_vert_adv
 END SUBROUTINE momentum_vert_adv
 
 ! ===================================================================
+#ifndef __USE_NATESM_OPT__
 
 SUBROUTINE momentum_vert_adv_upwind
 
@@ -591,6 +602,134 @@ SUBROUTINE momentum_vert_adv_upwind
 #endif
 
 END SUBROUTINE momentum_vert_adv_upwind
+
+#else
+
+SUBROUTINE momentum_vert_adv_upwind
+
+  ! Vertical momentum advection
+  ! For advection, quadratic upwind reconstruction is used.
+
+  USE o_PARAM
+  USE o_MESH
+  USE o_ARRAYS
+
+  USE g_PARSUP
+  use g_comm_auto
+
+  USE timerLibFortran
+  USE profilingTimers
+
+  IMPLICIT NONE
+
+  integer       :: elem, elnodes(4), nz
+  real(kind=WP) :: wcv(4), w(__NSIGMA_LIMIT__), acc
+  real(kind=WP) :: a, b, c, d, dg, da, db
+  real(kind=WP) :: Z1(__NSIGMA_LIMIT__), ZZ(__NSIGMA_LIMIT__)
+  real(kind=WP) :: uvert(__NSIGMA_LIMIT__), vvert(__NSIGMA_LIMIT__)
+  logical       :: maskWet
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_vert_adv_upwind"
+  CALL tlfStartSingleTimer(id_momentum_vert_adv_upwind)
+
+  !$OMP PARALLEL PRIVATE(elem, elnodes, nz, wcv, w, acc, a, b, c, d, dg, da, db, Z1, ZZ, uvert, vvert, maskWet)
+
+  w(nsigma) = 0.0_WP; Z1(nsigma) = 0.0_WP; ZZ(nsigma) = 0.0_WP
+  uvert(nsigma) = 0.0_WP; vvert(nsigma) = 0.0_WP
+
+  !$OMP DO
+  DO elem=1, myDim_elem2D
+
+    maskWet = .FALSE.; IF(mask_wd(elem) /= 0.0_WP) maskWet = .TRUE.
+
+    IF(maskWet) THEN
+
+        elnodes  = elem2D_nodes(:,elem)
+        wcv(1:4) = w_cv(1:4,elem)
+
+        acc = sum(wcv(1:4) * ac(elnodes))
+        DO nz=1, nsigma-1
+            w(nz)  = sum(wcv(1:4) * Wvel(nz,elnodes)) * elem_area(elem)
+            Z1(nz) = sum(wcv(1:4) * zbar(nz,elnodes))
+            ZZ(nz) = sum(wcv(1:4) * Z(nz,elnodes)   )
+        END DO
+
+        uvert(1) = - w(1) * U_n(1,elem)
+        vvert(1) = - w(1) * V_n(1,elem)
+
+        DO nz=2, nsigma-1
+
+            IF(w(nz) >= 0.0_WP) THEN
+
+                IF(nz == nsigma-1) THEN
+                    uvert(nz) = - 0.5_WP * (U_n(nz-1,elem) + U_n(nz,elem)) * w(nz)
+                    vvert(nz) = - 0.5_WP * (V_n(nz-1,elem) + V_n(nz,elem)) * w(nz)
+                ELSE
+                    a = Z1(nz)   - ZZ(nz-1)
+                    b = ZZ(nz)   - Z1(nz)
+                    c = ZZ(nz+1) - Z1(nz)
+                    d = (c + a) * (b*b - a*a) - (c*c - a*a) * (b + a)
+                    dg =   a * b * (a + b) / d
+                    db = - a * c * (a + c) / d
+                    da = 1.0_WP - dg - db
+                    uvert(nz) = - (U_n(nz-1,elem) * da + U_n(nz,elem) * db + U_n(nz+1,elem) * dg) * w(nz)
+                    vvert(nz) = - (V_n(nz-1,elem) * da + V_n(nz,elem) * db + V_n(nz+1,elem) * dg) * w(nz)
+                END IF
+
+            END IF
+
+            IF(w(nz) < 0.0_WP) THEN
+
+                IF(nz == 2) THEN
+                    uvert(nz) = - 0.5_WP * (U_n(nz-1,elem) + U_n(nz,elem)) * w(nz)
+                    vvert(nz) = - 0.5_WP * (V_n(nz-1,elem) + V_n(nz,elem)) * w(nz)
+                ELSE
+                    a = ZZ(nz) - Z1(nz)
+                    b = Z1(nz) - ZZ(nz-1)
+                    c = Z1(nz) - ZZ(nz-2)
+                    d = (c + a) * (b*b - a*a) - (c*c - a*a) * (b + a)
+                    dg =   a * b * (a + b) / d
+                    db = - a * c * (a + c) / d
+                    da = 1.0_WP - dg - db
+                    uvert(nz) = - (U_n(nz,elem) * da + U_n(nz-1,elem) * db + U_n(nz-2,elem) * dg) * w(nz)
+                    vvert(nz) = - (V_n(nz,elem) * da + V_n(nz-1,elem) * db + V_n(nz-2,elem) * dg) * w(nz)
+                END IF
+
+            END IF
+
+        END DO
+
+        DO nz=1, nsigma-1
+           U_rhsAB(nz,elem) = U_rhsAB(nz,elem) + (uvert(nz) - uvert(nz+1)) * acc
+           V_rhsAB(nz,elem) = V_rhsAB(nz,elem) + (vvert(nz) - vvert(nz+1)) * acc
+        END DO
+
+    END IF
+
+    IF(.NOT. maskWet) THEN
+
+        DO nz=1, nsigma-1
+           U_rhsAB(nz,elem) = 0.0_WP
+           V_rhsAB(nz,elem) = 0.0_WP
+        END DO
+
+    END IF
+
+  END DO
+  !$OMP END DO
+
+  !$OMP END PARALLEL
+
+  CALL tlfStopSingleTimer(id_momentum_vert_adv_upwind)
+
+#ifdef USE_MPI
+  call exchange_elem(U_rhsAB)
+  call exchange_elem(V_rhsAB)
+#endif
+
+END SUBROUTINE momentum_vert_adv_upwind
+
+#endif
 
 !========================================================================================
 SUBROUTINE momentum_adv_scalar_2D
