@@ -886,6 +886,8 @@ end SUBROUTINE riv_mom_adv_3D
 
 ! ============================================================
 
+#ifndef __USE_NATESM_OPT__
+
 SUBROUTINE momentum_adv_upwind_2D
 
   USE o_MESH
@@ -1015,11 +1017,90 @@ SUBROUTINE momentum_adv_upwind_2D
   call exchange_elem(U_rhs_2D)
 #endif
 
-
 end subroutine momentum_adv_upwind_2D
 ! AB3 time stepping, with the momentm advection in the 
 ! form u\nabla u. It allows to make the code faster, but needs for 
-! that special versions of other routines included in this file.  
+! that special versions of other routines included in this file.
+
+#else
+
+SUBROUTINE momentum_adv_upwind_2D
+
+  USE o_MESH
+  USE o_ARRAYS
+  USE o_PARAM
+
+  use g_parsup
+  use g_comm_auto
+
+  USE timerLibFortran
+  USE profilingTimers
+
+  IMPLICIT NONE
+
+  integer :: el1, el2, ed
+  integer :: nodes1, nodes2
+  integer :: edglim
+
+  real(kind=WP) :: un, u1, u2, v1, v2, dmean , acc
+  real(kind=WP) :: uu, vv
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_upwind_2D"
+  CALL tlfStartSingleTimer(id_momentum_adv_upwind_2D)
+
+#ifdef USE_MPI
+  edglim = myDim_edge2D + eDim_edge2D
+#else
+  edglim = edge2D_in
+#endif
+
+  DO ed=1, edglim
+
+#ifdef USE_MPI
+    IF (myList_edge2D(ed)>edge2D_in) CYCLE
+#endif
+
+    el1 = edge_tri(1,ed); el2 = edge_tri(2,ed)
+    nodes1 = edge_nodes(1,ed); nodes2 = edge_nodes(2,ed)
+
+    dmean = max(Dmin, 0.5_WP * (etaAB(nodes1) + depth(nodes1) + etaAB(nodes2) + depth(nodes2)))
+    acc = (ac(nodes1) + ac(nodes2)) * 0.5_WP
+
+    u1 = UAB(1,el1) - vel_grad(1,el1) * edge_cross_dxdy(1,ed) - vel_grad(2,el1) * edge_cross_dxdy(2,ed)
+    v1 = UAB(2,el1) - vel_grad(3,el1) * edge_cross_dxdy(1,ed) - vel_grad(4,el1) * edge_cross_dxdy(2,ed)
+    u2 = UAB(1,el2) - vel_grad(1,el2) * edge_cross_dxdy(3,ed) - vel_grad(2,el2) * edge_cross_dxdy(4,ed)
+    v2 = UAB(2,el2) - vel_grad(3,el2) * edge_cross_dxdy(3,ed) - vel_grad(4,el2) * edge_cross_dxdy(4,ed)
+
+    un = 0.5_WP * r_earth*dmean * &
+         ((u1 + u2) * edge_dxdy(2,ed) - (v1 * elem_cos(el1) + v2 * elem_cos(el2)) * edge_dxdy(1,ed))
+
+    u1 = UAB(1,el1); v1 = UAB(2,el1)
+    u2 = UAB(1,el2); v2 = UAB(2,el2)
+
+    IF(un >= 0.0_WP) THEN
+        uu = un * u1 * acc
+        vv = un * v1 * acc
+    ELSE
+        uu = un * u2 * acc
+        vv = un * v2 * acc
+    END IF
+
+    U_rhs_2D(1,el1) = U_rhs_2D(1,el1) - uu
+    U_rhs_2D(2,el1) = U_rhs_2D(2,el1) - vv
+    U_rhs_2D(1,el2) = U_rhs_2D(1,el2) + uu
+    U_rhs_2D(2,el2) = U_rhs_2D(2,el2) + vv
+
+  END DO
+
+  CALL tlfStopSingleTimer(id_momentum_adv_upwind_2D)
+
+#ifdef USE_MPI
+  call exchange_elem(U_rhs_2D)
+#endif
+
+end subroutine momentum_adv_upwind_2D
+
+#endif
 
 !=====================================================================================
 
