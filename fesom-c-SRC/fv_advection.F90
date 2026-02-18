@@ -1023,6 +1023,8 @@ end subroutine momentum_adv_upwind_2D
 
 !=====================================================================================
 
+#ifndef __USE_NATESM_OPT__
+
 SUBROUTINE momentum_adv_P1_3D_to_2D
 
   USE o_MESH
@@ -1150,6 +1152,83 @@ SUBROUTINE momentum_adv_P1_3D_to_2D
 #endif
 
 end subroutine momentum_adv_P1_3D_to_2D
+
+#else
+
+SUBROUTINE momentum_adv_P1_3D_to_2D
+
+  USE o_MESH
+  USE o_ARRAYS
+  USE o_PARAM
+
+  use g_parsup
+  use g_comm_auto
+
+  USE timerLibFortran
+  USE profilingTimers
+
+  IMPLICIT NONE
+
+  integer       :: elem, nz
+  integer       :: nodes1, nodes2, el1, el2, ed
+  integer       :: edglim
+
+  real(kind=WP) :: xe, ye, acc, un, uu, vv
+  real(kind=WP) :: u_e1, u_e2
+  real(kind=WP) :: v_e1, v_e2
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_P1_3D_to_2D"
+  CALL tlfStartSingleTimer(id_momentum_adv_P1_3D_to_2D)
+
+#ifdef USE_MPI
+  edglim=myDim_edge2D+eDim_edge2D
+#else
+  edglim=edge2D_in
+#endif
+
+  DO ed=1, edglim
+
+#ifdef USE_MPI
+    IF (myList_edge2D(ed)>edge2D_in) CYCLE
+#endif
+
+    nodes1 = edge_nodes(1,ed); nodes2 = edge_nodes(2,ed)
+    el1 = edge_tri(1,ed); el2 = edge_tri(2,ed)
+
+    xe = edge_dxdy(1,ed) * r_earth * 0.5_WP * (elem_cos(el1) + elem_cos(el2))
+    ye = edge_dxdy(2,ed) * r_earth
+    u_e1 = 0.0_WP; u_e2 = 0.0_WP; v_e1 = 0.0_WP; v_e2 = 0.0_WP
+
+    DO nz=1, nsigma-1
+
+        uu = 0.5_WP * (Unode_p(nz,nodes1) + Unode_p(nz,nodes2))
+        vv = 0.5_WP * (Vnode_p(nz,nodes1) + Vnode_p(nz,nodes2))
+        un = (uu*ye - vv*xe) * Jd(nz,ed)
+
+        u_e1 = u_e1 + uu * un * Je(nz,el1)
+        v_e1 = v_e1 + vv * un * Je(nz,el1)
+        u_e2 = u_e2 + uu * un * Je(nz,el2)
+        v_e2 = v_e2 + vv * un * Je(nz,el2)
+
+    END DO
+
+    acc = (ac(nodes1) + ac(nodes2)) * 0.5_WP
+    U_rhs_2D_3D(1,el1) = U_rhs_2D_3D(1,el1) - acc * u_e1
+    U_rhs_2D_3D(2,el1) = U_rhs_2D_3D(2,el1) - acc * v_e1
+    U_rhs_2D_3D(1,el2) = U_rhs_2D_3D(1,el2) + acc * u_e2
+    U_rhs_2D_3D(2,el2) = U_rhs_2D_3D(2,el2) + acc * v_e2
+
+  END DO
+
+  CALL tlfStopSingleTimer(id_momentum_adv_P1_3D_to_2D)
+
+#ifdef USE_MPI
+  call exchange_elem(U_rhs_2D_3D)
+#endif
+
+end subroutine momentum_adv_P1_3D_to_2D
+
+#endif
 
 ! ============================================================================
 
