@@ -12,6 +12,9 @@ SUBROUTINE compute_vel_rhs
   USE g_PARSUP
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   integer          :: el, elnodes(4), nz, rie , elem
@@ -101,7 +104,11 @@ SUBROUTINE compute_vel_rhs
   ! Horizontal advection
   ! ====================
 
-  if(mom_adv_3D == 1) call momentum_adv_upwind
+  IF(mom_adv_3D == 1) THEN
+    CALL tlfStartSingleTimer(id_momentum_adv_upwind_UP)
+    CALL momentum_adv_upwind()
+    CALL tlfStopSingleTimer(id_momentum_adv_upwind_UP)
+  END IF
 !SH SKIPPED FOR NOW  If(mom_adv_3D == 2) call momentum_adv_p1
 !SH SKIPPED FOR NOW  if(mom_adv_3D == 3) call momentum_adv_scalar_3D
 
@@ -130,7 +137,11 @@ SUBROUTINE compute_vel_rhs
   !===============================
   ! Vertical advection
   !===============================
-  if (vert_adv == 1) call momentum_vert_adv_upwind
+  if (vert_adv == 1) then
+    CALL tlfStartSingleTimer(id_momentum_vert_adv_upwind_UP)
+    call momentum_vert_adv_upwind()
+    CALL tlfStopSingleTimer(id_momentum_vert_adv_upwind_UP)
+  end if
 !SH SKIPPED FOR NOW    if (ex_vert_visc) call momentum_vert_expl_visc
 
   ! =======================

@@ -12,8 +12,11 @@ MODULE profilingTimers
     PRIVATE
 
     PUBLIC :: idMainLoopTimer, idDataExchangeTimer, idDataBroadcastTimer, idDataGatherTimer
-    PUBLIC :: id_momentum_vert_adv_upwind, id_momentum_adv_P1_3D_to_2D
-    PUBLIC :: id_momentum_adv_upwind_2D, id_momentum_adv_upwind
+    PUBLIC :: id_momentum_vert_adv_upwind, id_momentum_vert_adv_upwind_UP
+    PUBLIC :: id_momentum_adv_P1_3D_to_2D, id_momentum_adv_P1_3D_to_2D_UP
+    PUBLIC :: id_momentum_adv_upwind_2D, id_momentum_adv_upwind_2D_UP
+    PUBLIC :: id_momentum_adv_upwind, id_momentum_adv_upwind_UP
+    PUBLIC :: id_solve_tracer_upwind, id_solve_tracer_upwind_UP
 
     PUBLIC :: ptInitTimerSpace
     PUBLIC :: ptRebootTimerSpace
@@ -27,10 +30,12 @@ MODULE profilingTimers
     INTEGER :: idDataBroadcastTimer
     INTEGER :: idDataGatherTimer
 
-    INTEGER :: id_momentum_vert_adv_upwind
-    INTEGER :: id_momentum_adv_P1_3D_to_2D
-    INTEGER :: id_momentum_adv_upwind_2D
-    INTEGER :: id_momentum_adv_upwind
+    INTEGER :: id_momentum_vert_adv_upwind, id_momentum_vert_adv_upwind_UP
+    INTEGER :: id_momentum_adv_P1_3D_to_2D, id_momentum_adv_P1_3D_to_2D_UP
+    INTEGER :: id_momentum_adv_upwind_2D, id_momentum_adv_upwind_2D_UP
+    INTEGER :: id_momentum_adv_upwind, id_momentum_adv_upwind_UP
+
+    INTEGER :: id_solve_tracer_upwind, id_solve_tracer_upwind_UP
 
     CONTAINS
 
@@ -51,10 +56,20 @@ MODULE profilingTimers
 
         IMPLICIT NONE
 
-        id_momentum_vert_adv_upwind = tlfNewSingleTimer("FV ADV momentum_vert_adv_upwind")
-        id_momentum_adv_P1_3D_to_2D = tlfNewSingleTimer("FV ADV momentum_adv_P1_3D_to_2D")
-        id_momentum_adv_upwind_2D   = tlfNewSingleTimer("FV ADV momentum_adv_upwind_2D")
-        id_momentum_adv_upwind      = tlfNewSingleTimer("FV ADV momentum_adv_upwind")
+        id_momentum_vert_adv_upwind    = tlfNewSingleTimer("FV ADV momentum_vert_adv_upwind INTERNAL")
+        id_momentum_vert_adv_upwind_UP = tlfNewSingleTimer("FV ADV momentum_vert_adv_upwind EXTERNAL")
+
+        id_momentum_adv_P1_3D_to_2D    = tlfNewSingleTimer("FV ADV momentum_adv_P1_3D_to_2D INTERNAL")
+        id_momentum_adv_P1_3D_to_2D_UP = tlfNewSingleTimer("FV ADV momentum_adv_P1_3D_to_2D EXTERNAL")
+
+        id_momentum_adv_upwind_2D      = tlfNewSingleTimer("FV ADV momentum_adv_upwind_2D INTERNAL")
+        id_momentum_adv_upwind_2D_UP   = tlfNewSingleTimer("FV ADV momentum_adv_upwind_2D EXTERNAL")
+
+        id_momentum_adv_upwind         = tlfNewSingleTimer("FV ADV momentum_adv_upwind INTERNAL")
+        id_momentum_adv_upwind_UP      = tlfNewSingleTimer("FV ADV momentum_adv_upwind EXTERNAL")
+
+        id_solve_tracer_upwind         = tlfNewSingleTimer("FV TRACER solve_tracer_upwind INTERNAL")
+        id_solve_tracer_upwind_UP      = tlfNewSingleTimer("FV TRACER solve_tracer_upwind EXTERNAL")
 
     END SUBROUTINE ptInitAdvectionTimerGroup
 
@@ -74,9 +89,19 @@ MODULE profilingTimers
         IMPLICIT NONE
 
         CALL tlfRebootSingleTimer(id_momentum_vert_adv_upwind)
+        CALL tlfRebootSingleTimer(id_momentum_vert_adv_upwind_UP)
+
         CALL tlfRebootSingleTimer(id_momentum_adv_P1_3D_to_2D)
+        CALL tlfRebootSingleTimer(id_momentum_adv_P1_3D_to_2D_UP)
+
         CALL tlfRebootSingleTimer(id_momentum_adv_upwind_2D)
+        CALL tlfRebootSingleTimer(id_momentum_adv_upwind_2D_UP)
+
         CALL tlfRebootSingleTimer(id_momentum_adv_upwind)
+        CALL tlfRebootSingleTimer(id_momentum_adv_upwind_UP)
+
+        CALL tlfRebootSingleTimer(id_solve_tracer_upwind)
+        CALL tlfRebootSingleTimer(id_solve_tracer_upwind_UP)
 
     END SUBROUTINE ptRebootAdvectionTimerGroup
 
@@ -120,10 +145,20 @@ MODULE profilingTimers
 
         IMPLICIT NONE
 
-        CALL tlfPrintSingleTimerStatus(id_momentum_vert_adv_upwind, 2)
-        CALL tlfPrintSingleTimerStatus(id_momentum_adv_P1_3D_to_2D, 1)
-        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind_2D,   1)
-        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind,      1)
+        CALL tlfPrintSingleTimerStatus(id_momentum_vert_adv_upwind,    2)
+        CALL tlfPrintSingleTimerStatus(id_momentum_vert_adv_upwind_UP, 1)
+
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_P1_3D_to_2D,    1)
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_P1_3D_to_2D_UP, 1)
+
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind_2D,      1)
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind_2D_UP,   1)
+
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind,         1)
+        CALL tlfPrintSingleTimerStatus(id_momentum_adv_upwind_UP,      1)
+
+        CALL tlfPrintSingleTimerStatus(id_solve_tracer_upwind,         1)
+        CALL tlfPrintSingleTimerStatus(id_solve_tracer_upwind_UP,      1)
 
     END SUBROUTINE ptAnalizeAdvectionTimerGroup
 

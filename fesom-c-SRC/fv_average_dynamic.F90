@@ -342,6 +342,9 @@ SUBROUTINE update_2D_vel(step)
   use g_parsup
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   integer, intent(in)   :: step
@@ -451,7 +454,11 @@ if (WET_DRY_ON) call wad_mask
   ! and viscosity: (assembly over edges)
   ! ======================
 !SH SKIPPED FOR NOW  if (mom_adv_2D == 1) call momentum_adv_scalar_2D
-  if (mom_adv_2D == 2) call momentum_adv_upwind_2D
+  IF (mom_adv_2D == 2) THEN
+    CALL tlfStartSingleTimer(id_momentum_adv_upwind_2D_UP)
+    CALL momentum_adv_upwind_2D()
+    CALL tlfStopSingleTimer(id_momentum_adv_upwind_2D_UP)
+  END IF
   ! IK remove rivers
   !if (riv) then
   ! call riv_mom_adv_2D

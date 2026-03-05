@@ -27,6 +27,9 @@ PROGRAM MAIN
   USE timerLibFortran
   USE profilingTimers
 
+  USE memLibFortran
+  USE graphProcessing
+
   IMPLICIT NONE
 
   integer      :: i, k, n, period_m2, out_fft, istep, ist,elnodes(4), nz, rk, rk2, turn_on_riv, n_dt2, flag_riv,vsp(11)
@@ -69,10 +72,10 @@ PROGRAM MAIN
   call printAffinityBindingC(mype, -1)
 #endif
 
-  ! natESM
+  ! ======================================== natESM ========================================
   CALL ptInitTimerSpace()
   CALL ptInitAdvectionTimerGroup()
-  ! natESM
+  ! ======================================== natESM ========================================
 
  !aa67 print *,'Init phase: mype,npes = ',mype,npes
 
@@ -473,10 +476,15 @@ if ((riv).or.(riv_ob)) call initial_riv
 
 !nsteps=870 ! 200  !2000   !400  !8000
 
-  ! natESM
+  ! ======================================== natESM ========================================
   CALL ptRebootTimerSpace()
   CALL ptRebootAdvectionTimerGroup()
-  ! natESM
+
+  CALL allocateMemLibArrays()
+
+  CALL setDualGraphEdgeColor()
+  CALL initFvFaceToCellMap()
+  ! ======================================== natESM ========================================
 
 #ifdef USE_MPI 
   t0=MPI_Wtime()
@@ -1520,6 +1528,9 @@ SUBROUTINE timestep_AB_2D(step)
   use g_parsup
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
 
   real(kind=WP)   :: dmean, fD(4), fDD(4), ibv, rho_inv
@@ -1681,7 +1692,9 @@ SUBROUTINE timestep_AB_2D(step)
 
 !$OMP END PARALLEL
 
-     call momentum_adv_P1_3D_to_2D
+     CALL tlfStartSingleTimer(id_momentum_adv_P1_3D_to_2D_UP)
+     call momentum_adv_P1_3D_to_2D()
+     CALL tlfStopSingleTimer(id_momentum_adv_P1_3D_to_2D_UP)
 
      if (filt_3D)  call viscosity_filt_3D_to_2D
 
@@ -1908,6 +1921,9 @@ SUBROUTINE solve_tracers
 
   use g_parsup
 
+  USE timerLibFortran
+  USE profilingTimers
+
   IMPLICIT NONE
   
   real(kind=WP) :: T_min, T_max, S_min, S_max
@@ -1986,7 +2002,10 @@ SUBROUTINE solve_tracers
 !SH SKIPPED FOR NOW     call solve_tracer_muscl(TF, T_old, 't')
 !SH SKIPPED FOR NOW     call solve_tracer_muscl(SF, S_old, 's')
   elseif(tracer_adv==1) then
-     call solve_tracer_upwind(TF, T_old, SF, S_old)
+
+    CALL tlfStartSingleTimer(id_solve_tracer_upwind_UP)
+    call solve_tracer_upwind(TF, T_old, SF, S_old)
+    CALL tlfStopSingleTimer(id_solve_tracer_upwind_UP)
 
   elseif (tracer_adv==4) then
  

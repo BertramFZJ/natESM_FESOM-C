@@ -1,3 +1,5 @@
+#define __USE_NATESM_EXTERNAL_MEMLIB__
+
 !===================================================================================
 ! It is assumed that velocity is at n+1/2, hence only tracer field
 ! is AB2 interpolated to n+1/2.
@@ -393,25 +395,49 @@ SUBROUTINE solve_tracer_upwind(ttf, ttfold, stf, stfold)
   USE g_PARSUP
   use g_comm_auto
 
+  USE timerLibFortran
+  USE profilingTimers
+
+#ifdef __USE_NATESM_EXTERNAL_MEMLIB__
+  USE memLibFortran
+#endif
+
   IMPLICIT NONE
 
   real(kind=WP), intent(inout) :: ttf(nsigma-1, myDim_nod2D+eDim_nod2D)
   real(kind=WP), intent(inout) :: ttfold(nsigma-1, myDim_nod2D+eDim_nod2D)
   real(kind=WP), intent(inout) :: stf(nsigma-1, myDim_nod2D+eDim_nod2D)
   real(kind=WP), intent(inout) :: stfold(nsigma-1, myDim_nod2D+eDim_nod2D)
-  real(kind=WP) :: Vel_nor(myDim_nod2D+eDim_nod2D)
 
-  integer      :: nod1, nod2, n, nz, ed, el1, el2, me_nod1, me_nod2
+  integer       :: nod1, nod2, n, nz, ed, el1, el2, me_nod1, me_nod2
   real(kind=WP) :: c1, c2,  flux=0.0
   real(kind=WP) :: tvert(nsigma), svert(nsigma), db, dg
   real(kind=WP) :: Kh, Kvv,area_inv, dmean, un1
   real(kind=WP) :: t_aux(nsigma-1),s_aux(nsigma-1), aux_c(nsigma-1)
-  real(kind=WP) :: ttrhs(nsigma-1,myDim_nod2D+eDim_nod2D),strhs(nsigma-1,myDim_nod2D+eDim_nod2D)
-  real(kind=WP) :: trhs_c(nsigma-1,myDim_nod2D+eDim_nod2D)
-
 
   integer :: edglim
-  
+
+#ifndef __USE_NATESM_EXTERNAL_MEMLIB__
+
+  real(kind=WP) ::   ttrhs(nsigma-1, myDim_nod2D + eDim_nod2D)
+  real(kind=WP) ::   strhs(nsigma-1, myDim_nod2D + eDim_nod2D)
+  real(kind=WP) ::  trhs_c(nsigma-1, myDim_nod2D + eDim_nod2D)
+  real(kind=WP) :: Vel_nor(          myDim_nod2D + eDim_nod2D)
+
+  CALL tlfStartSingleTimer(id_solve_tracer_upwind)
+
+#else
+
+  real(kind=WP), POINTER :: ttrhs(:,:), strhs(:,:), trhs_c(:,:)
+  real(kind=WP), POINTER :: Vel_nor(:)
+
+  CALL tlfStartSingleTimer(id_solve_tracer_upwind)
+
+  ttrhs => memReal2D_01; strhs => memReal2D_02; trhs_c => memReal2D_03
+  Vel_nor => memReal1D_NODES_01
+
+#endif
+
   !NR OpenMP domain decomposition of nodes
   me_nod1=1
   me_nod2=myDim_nod2D+eDim_nod2D
@@ -915,7 +941,7 @@ SUBROUTINE solve_tracer_upwind(ttf, ttfold, stf, stfold)
 
   end if
 
-
+  CALL tlfStopSingleTimer(id_solve_tracer_upwind)
 
 end subroutine solve_tracer_upwind
 
