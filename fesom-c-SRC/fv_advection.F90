@@ -1,7 +1,8 @@
 #define __USE_NATESM_OPT__
 #define __NSIGMA_LIMIT__ 96
 
-#define __USE_NATESM_COLOR__
+! #define __USE_NATESM_COLOR__
+! #define __USE_NATESM_FLUXES_GATHER__
 
 ! ******** LE_FINE + GSR TEST CASES ********
 ! CALL SUBROUTINE momentum_vert_adv_upwind
@@ -96,6 +97,8 @@ SUBROUTINE momentum_adv_upwind
   USE timerLibFortran
   USE profilingTimers
 
+  USE graphProcessing, ONLY: numFvCell, fvFaceToCellX, fvFaceToCellA
+
   IMPLICIT NONE
 
   real(kind=WP)    :: u1, u2, v1, v2
@@ -106,6 +109,8 @@ SUBROUTINE momentum_adv_upwind
   real(kind=WP)    :: uu(nsigma-1,myDim_edge2D+eDim_edge2D), vv(nsigma-1,myDim_edge2D+eDim_edge2D)
 
   integer :: edglim
+
+  integer :: idCell, idLink
 
   ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_upwind"
   CALL tlfStartSingleTimer(id_momentum_adv_upwind)
@@ -185,6 +190,8 @@ SUBROUTINE momentum_adv_upwind
   END DO
   ! !$OMP END PARALLEL DO
 
+#ifndef __USE_NATESM_FLUXES_GATHER__
+
   !NROMP   To be better parallelized! This workarround is not optimal:
   DO ed=1, edglim
 
@@ -201,6 +208,25 @@ SUBROUTINE momentum_adv_upwind
      V_rhsAB(1:nsigma-1,el(2)) = V_rhsAB(1:nsigma-1,el(2)) +vv(1:nsigma-1,ed)
 
   ENDDO
+
+#else
+
+  !$OMP PARALLEL DO PRIVATE(idLink)
+  DO idCell = 1, numFvCell
+    DO idLink = fvFaceToCellX(idCell), fvFaceToCellX(idCell + 1) - 1
+        IF(fvFaceToCellA(idLink) < 0) THEN
+            U_rhsAB(1:nsigma-1,idCell) = U_rhsAB(1:nsigma-1,idCell) -uu(1:nsigma-1, - fvFaceToCellA(idLink))
+            V_rhsAB(1:nsigma-1,idCell) = V_rhsAB(1:nsigma-1,idCell) -vv(1:nsigma-1, - fvFaceToCellA(idLink))
+        END IF
+        IF(fvFaceToCellA(idLink) > 0) THEN
+            U_rhsAB(1:nsigma-1,idCell) = U_rhsAB(1:nsigma-1,idCell) +uu(1:nsigma-1,   fvFaceToCellA(idLink))
+            V_rhsAB(1:nsigma-1,idCell) = V_rhsAB(1:nsigma-1,idCell) +vv(1:nsigma-1,   fvFaceToCellA(idLink))
+        END IF
+    END DO
+  END DO
+  !$OMP END PARALLEL DO
+
+#endif
 
   CALL tlfStopSingleTimer(id_momentum_adv_upwind)
 
