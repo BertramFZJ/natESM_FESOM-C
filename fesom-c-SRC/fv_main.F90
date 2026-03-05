@@ -497,6 +497,9 @@ if ((riv).or.(riv_ob)) call initial_riv
   activeTimer = .FALSE.
   do n_dt = 1, nsteps
 
+    FLUSH(0)
+    FLUSH(6)
+
     CALL tlfStartSingleTimer(idMainLoopTimer)
 
     if(activeTimer .EQV. .FALSE.) then
