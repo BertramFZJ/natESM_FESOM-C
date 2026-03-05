@@ -1,6 +1,8 @@
 #define __USE_NATESM_OPT__
 #define __NSIGMA_LIMIT__ 96
 
+#define __USE_NATESM_COLOR__
+
 ! ******** LE_FINE + GSR TEST CASES ********
 ! CALL SUBROUTINE momentum_vert_adv_upwind
 ! CALL SUBROUTINE momentum_adv_P1_3D_to_2D
@@ -211,6 +213,8 @@ END SUBROUTINE momentum_adv_upwind
 
 #else
 
+#ifndef __USE_NATESM_COLOR__
+
 SUBROUTINE momentum_adv_upwind
 
   USE o_PARAM
@@ -317,6 +321,89 @@ SUBROUTINE momentum_adv_upwind
 #endif
 
 END SUBROUTINE momentum_adv_upwind
+
+#else
+
+SUBROUTINE momentum_adv_upwind
+
+  USE o_PARAM
+  USE o_MESH
+  USE o_ARRAYS
+
+  USE g_PARSUP
+  use g_comm_auto
+
+  USE timerLibFortran
+  USE profilingTimers
+
+  USE graphProcessing, ONLY: numFvFaceColor, fvFaceColorX, fvFaceColorA
+
+  IMPLICIT NONE
+
+  real(kind=WP)    :: u1, u2, v1, v2
+  real(kind=WP)    :: un, acc
+  real(kind=WP)    :: uu, vv
+
+  integer          :: ed, el1, el2, nz
+  integer          :: idColor, idEdge
+
+  ! WRITE(*,*) "CALL SUBROUTINE momentum_adv_upwind"
+  CALL tlfStartSingleTimer(id_momentum_adv_upwind)
+
+  DO idColor=1, numFvFaceColor
+
+    !$OMP PARALLEL DO NUM_THREADS(8) PRIVATE(u1, u2, v1, v2, un, acc, ed, el1, el2, nz)
+    DO idEdge = fvFaceColorX(idColor), fvFaceColorX(idColor + 1) - 1
+
+        ed = fvFaceColorA(idEdge)
+
+        el1 = edge_tri(1,ed)
+        el2 = edge_tri(2,ed)
+
+        acc = 0.5_WP * ( ac(edge_nodes(1,ed)) + ac(edge_nodes(2,ed)) )
+
+        !dir$ ivdep
+        DO nz=1,nsigma-1
+
+            u1 = U_n(nz,el1)- vel_grad_ux(nz,el1)*edge_cross_dxdy(1,ed) &
+               - vel_grad_uy(nz,el1)*edge_cross_dxdy(2,ed)
+            v1 = V_n(nz,el1)- vel_grad_vx(nz,el1)*edge_cross_dxdy(1,ed) &
+               - vel_grad_vy(nz,el1)*edge_cross_dxdy(2,ed)
+            u2 = U_n(nz,el2)- vel_grad_ux(nz,el2)*edge_cross_dxdy(3,ed) &
+               - vel_grad_uy(nz,el2)*edge_cross_dxdy(4,ed)
+            v2 = V_n(nz,el2)- vel_grad_vx(nz,el2)*edge_cross_dxdy(3,ed) &
+               - vel_grad_vy(nz,el2)*edge_cross_dxdy(4,ed)
+
+            un = 0.5_WP* r_earth* Jd(nz,ed)* &
+                 ((u1+u2)*edge_dxdy(2,ed) - (v1*elem_cos(el1)+v2*elem_cos(el2))*edge_dxdy(1,ed))
+
+            IF(un >= 0.0_WP) THEN
+                uu = u1*un*acc
+                vv = v1*un*acc
+            ELSE
+                uu = u2*un*acc
+                vv = v2*un*acc
+            END IF
+
+            U_rhsAB(nz,el1) = U_rhsAB(nz,el1) - uu
+            V_rhsAB(nz,el1) = V_rhsAB(nz,el1) - vv
+            U_rhsAB(nz,el2) = U_rhsAB(nz,el2) + uu
+            V_rhsAB(nz,el2) = V_rhsAB(nz,el2) + vv
+        END DO
+    END DO
+    !$OMP END PARALLEL DO
+  END DO
+
+  CALL tlfStopSingleTimer(id_momentum_adv_upwind)
+
+#ifdef USE_MPI
+  call exchange_elem(U_rhsAB)
+  call exchange_elem(V_rhsAB)
+#endif
+
+END SUBROUTINE momentum_adv_upwind
+
+#endif
 
 #endif
 ! ============================================================================
